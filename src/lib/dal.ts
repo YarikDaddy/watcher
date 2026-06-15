@@ -22,3 +22,12 @@ export const getUser = cache(async () => {
     select: { id: true, email: true, telegramChatId: true, createdAt: true },
   });
 });
+
+/** Трекеры текущего пользователя. */
+export const getTrackers = cache(async () => {
+  const { userId } = await verifySession();
+  return prisma.tracker.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+});
