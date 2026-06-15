@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Watcher
 
-## Getting Started
+Отслеживай изменения на любом сайте и получай мгновенные уведомления в Telegram.
 
-First, run the development server:
+Указываешь URL и CSS-селектор — Watcher периодически проверяет страницу и присылает алерт,
+когда меняется цена, появляется товар в наличии, публикуется вакансия или меняется любой текст.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+> Статус: ранний MVP, в активной разработке (#buildinpublic).
+
+## Возможности (MVP)
+
+- 🔗 Трекеры: URL + CSS-селектор + интервал проверки
+- 🔁 Два режима: изменение текста и появление/исчезновение элемента
+- 📲 Мгновенные уведомления в Telegram
+- 📊 Дашборд со статусом и историей срабатываний
+- 🆓 Бесплатный тариф: 3 трекера, проверка раз в час
+
+## Стек
+
+- **Next.js (App Router) + TypeScript** — UI, API, лендинг
+- **PostgreSQL + Prisma** — данные
+- **Воркер на node-cron** — фоновые проверки (отдельный процесс)
+- **cheerio** — парсинг HTML
+- **grammY** — Telegram-бот
+
+## Архитектура
+
+```
+Next.js (UI + API) ──► PostgreSQL ◄── Worker (node-cron)
+                                          │ fetch + cheerio
+                                          ▼
+                                    Telegram Bot
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Локальный запуск
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+# 1. Зависимости
+npm install
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# 2. Окружение
+cp .env.example .env   # заполни DATABASE_URL и TELEGRAM_BOT_TOKEN
 
-## Learn More
+# 3. БД
+npm run db:push        # применить схему к Postgres
+npm run db:generate    # сгенерировать Prisma Client
 
-To learn more about Next.js, take a look at the following resources:
+# 4. Запуск (в двух терминалах)
+npm run dev            # веб-приложение на http://localhost:3000
+npm run worker         # фоновый воркер проверок
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Тесты
+npm test
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Структура
 
-## Deploy on Vercel
+```
+prisma/schema.prisma   — модель данных (User, Tracker, Snapshot, Alert)
+src/lib/prisma.ts       — Prisma Client (singleton)
+src/lib/check.ts        — загрузка страницы, извлечение по селектору, сравнение
+src/lib/telegram.ts     — отправка сообщений в Telegram
+src/worker/index.ts     — планировщик проверок (node-cron)
+src/app/                — Next.js приложение
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Roadmap
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [x] Каркас: схема БД, модуль проверки, воркер, Telegram
+- [ ] Аутентификация и дашборд
+- [ ] CRUD трекеров
+- [ ] Привязка Telegram через бота
+- [ ] Лендинг
+- [ ] Деплой (Vercel + Railway)
+- [ ] Тарифы и оплата (после первых пользователей)
+- [ ] JS-рендеринг (Playwright) для динамических сайтов
+
+## Лицензия
+
+MIT

@@ -1,0 +1,79 @@
+// Watcher — схема БД
+// Документация Prisma: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  // В Prisma 7 connection URL задаётся в prisma.config.ts (для CLI)
+  // и через driver-adapter в PrismaClient (для рантайма) — см. src/lib/prisma.ts
+}
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  passwordHash      String?
+  // Привязка Telegram: пользователь отправляет боту этот токен, бот сохраняет chatId
+  telegramChatId    String?
+  telegramLinkToken String?   @unique
+  trackers          Tracker[]
+  createdAt         DateTime  @default(now())
+}
+
+enum TrackerType {
+  TEXT_CHANGE // следим за изменением текста в селекторе
+  PRESENCE    // следим за появлением/исчезновением элемента
+}
+
+enum TrackerStatus {
+  PENDING // ещё ни разу не проверяли
+  OK      // проверен, изменений нет
+  CHANGED // последнее изменение зафиксировано
+  ERROR   // ошибка при проверке (сайт недоступен / селектор пуст)
+}
+
+model Tracker {
+  id              String        @id @default(cuid())
+  userId          String
+  user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String
+  url             String
+  selector        String
+  type            TrackerType   @default(TEXT_CHANGE)
+  intervalMinutes Int           @default(60)
+  isActive        Boolean       @default(true)
+  status          TrackerStatus @default(PENDING)
+  lastValue       String? // последнее извлечённое значение для сравнения
+  lastError       String?
+  lastCheckedAt   DateTime?
+  nextCheckAt     DateTime      @default(now())
+  snapshots       Snapshot[]
+  alerts          Alert[]
+  createdAt       DateTime      @default(now())
+
+  @@index([isActive, nextCheckAt])
+}
+
+model Snapshot {
+  id        String   @id @default(cuid())
+  trackerId String
+  tracker   Tracker  @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  value     String
+  createdAt DateTime @default(now())
+
+  @@index([trackerId, createdAt])
+}
+
+model Alert {
+  id        String   @id @default(cuid())
+  trackerId String
+  tracker   Tracker  @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  message   String
+  oldValue  String?
+  newValue  String?
+  createdAt DateTime @default(now())
+
+  @@index([trackerId, createdAt])
+}
