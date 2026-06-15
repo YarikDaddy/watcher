@@ -14,12 +14,25 @@ datasource db {
 model User {
   id                String    @id @default(cuid())
   email             String    @unique
-  passwordHash      String?
+  passwordHash      String
   // Привязка Telegram: пользователь отправляет боту этот токен, бот сохраняет chatId
   telegramChatId    String?
   telegramLinkToken String?   @unique
   trackers          Tracker[]
+  sessions          Session[]
   createdAt         DateTime  @default(now())
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  // В cookie кладём сырой токен, в БД храним его SHA-256 хеш
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
 }
 
 enum TrackerType {
