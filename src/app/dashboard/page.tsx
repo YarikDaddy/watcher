@@ -3,6 +3,7 @@ import { logout } from "@/app/actions/auth";
 import { deleteTracker } from "@/app/actions/trackers";
 import { FREE_TIER_TRACKER_LIMIT } from "@/lib/validation";
 import AddTrackerForm from "./add-tracker-form";
+import TelegramLink from "./telegram-link";
 
 const STATUS_LABEL: Record<string, { text: string; className: string }> = {
   PENDING: { text: "ожидает проверки", className: "text-gray-500" },
@@ -39,14 +40,7 @@ export default async function DashboardPage() {
       <section className="mb-8 rounded-lg border border-gray-200 p-4 dark:border-gray-800">
         <p className="text-sm text-gray-500">Вы вошли как</p>
         <p className="font-medium">{user?.email}</p>
-        <p className="mt-2 text-sm text-gray-500">
-          Telegram:{" "}
-          {user?.telegramChatId ? (
-            <span className="text-green-600">привязан</span>
-          ) : (
-            <span className="text-amber-600">не привязан</span>
-          )}
-        </p>
+        <TelegramLink linked={!!user?.telegramChatId} />
       </section>
 
       <section className="mb-8">

@@ -1,7 +1,9 @@
+import "dotenv/config";
 import cron from "node-cron";
 import { prisma } from "../lib/prisma";
 import { fetchValue, compare, toStoredValue } from "../lib/check";
 import { sendTelegramMessage } from "../lib/telegram";
+import { createBot } from "./bot";
 
 const BATCH_SIZE = 20;
 
@@ -70,3 +72,11 @@ console.log("[worker] запущен, проверка каждую минуту
 cron.schedule("* * * * *", () => {
   runDueChecks().catch((err) => console.error("[worker] ошибка прохода:", err));
 });
+
+// Бот привязки Telegram работает в том же процессе (long-polling).
+const bot = createBot();
+if (bot) {
+  bot.start({
+    onStart: (info) => console.log(`[bot] запущен как @${info.username}`),
+  });
+}

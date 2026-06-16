@@ -60,7 +60,8 @@ prisma/schema.prisma   — модель данных (User, Tracker, Snapshot, A
 src/lib/prisma.ts       — Prisma Client (singleton)
 src/lib/check.ts        — загрузка страницы, извлечение по селектору, сравнение
 src/lib/telegram.ts     — отправка сообщений в Telegram
-src/worker/index.ts     — планировщик проверок (node-cron)
+src/worker/index.ts     — планировщик проверок (node-cron) + запуск бота
+src/worker/bot.ts       — Telegram-бот привязки аккаунта (grammY, /start <token>)
 src/app/                — Next.js приложение
 ```
 
@@ -69,7 +70,7 @@ src/app/                — Next.js приложение
 - [x] Каркас: схема БД, модуль проверки, воркер, Telegram
 - [x] Аутентификация (email + пароль, сессии в БД) и защищённый дашборд
 - [x] CRUD трекеров (добавление, список, удаление, лимит свободного тарифа)
-- [ ] Привязка Telegram через бота
+- [x] Привязка Telegram через бота (deep-link `/start`, бот в процессе воркера)
 - [ ] Лендинг
 - [ ] Деплой (Vercel + Railway)
 - [ ] Тарифы и оплата (после первых пользователей)
