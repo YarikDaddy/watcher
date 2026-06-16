@@ -53,6 +53,17 @@ npm run worker         # фоновый воркер проверок
 npm test
 ```
 
+## Деплой
+
+Веб и воркер деплоятся раздельно — воркер это постоянный процесс (cron + Telegram
+long-polling) и не работает на serverless.
+
+- **Веб (Next.js) → Vercel.** Импортировать GitHub-репозиторий. Env: `DATABASE_URL`,
+  `TELEGRAM_BOT_USERNAME`. Сборка стандартная (`prisma generate` запускается в `postinstall`).
+- **Воркер → Railway.** Тот же репозиторий, start-команда `npm run worker`. Env:
+  `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`.
+- **БД → Neon** (Postgres). Один `DATABASE_URL` на оба сервиса.
+
 ## Структура
 
 ```
