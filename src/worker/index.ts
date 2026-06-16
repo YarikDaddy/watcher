@@ -32,6 +32,22 @@ async function runDueChecks() {
       continue;
     }
 
+    // Для TEXT_CHANGE пустой результат = селектор не нашёл элемент: это ошибка
+    // конфигурации, а не валидное значение. Иначе на следующем проходе «» → текст
+    // дало бы ложный алерт. Для PRESENCE отсутствие элемента — валидное состояние.
+    if (tracker.type === "TEXT_CHANGE" && !result.present) {
+      await prisma.tracker.update({
+        where: { id: tracker.id },
+        data: {
+          status: "ERROR",
+          lastError: "Селектор не нашёл элемент на странице",
+          lastCheckedAt: now,
+          nextCheckAt,
+        },
+      });
+      continue;
+    }
+
     const cmp = compare(tracker.type, tracker.lastValue, result);
     const stored = toStoredValue(tracker.type, result);
 

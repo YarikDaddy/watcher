@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { createTracker } from "@/app/actions/trackers";
+import { previewSelector, type PreviewResult } from "@/app/actions/preview";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
@@ -19,14 +20,54 @@ function FieldError({ errors }: { errors?: string[] }) {
   );
 }
 
+function PreviewBadge({ result }: { result: PreviewResult }) {
+  if (!result.ok) {
+    return <span className="text-sm text-red-500">✗ {result.error}</span>;
+  }
+  if (!result.present) {
+    return (
+      <span className="text-sm text-amber-600">
+        ⚠ Селектор ничего не нашёл на странице — проверьте его
+      </span>
+    );
+  }
+  const value =
+    result.value.length > 80 ? `${result.value.slice(0, 80)}…` : result.value;
+  return (
+    <span className="text-sm text-green-600">
+      ✓ Нашлось: «{value || "пусто"}»
+    </span>
+  );
+}
+
 export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
   const [state, action, pending] = useActionState(createTracker, undefined);
   const formRef = useRef<HTMLFormElement>(null);
+  const urlRef = useRef<HTMLInputElement>(null);
+  const selectorRef = useRef<HTMLInputElement>(null);
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [previewPending, startPreview] = useTransition();
 
   // Очищаем форму после успешного добавления
   useEffect(() => {
     if (state?.success) formRef.current?.reset();
   }, [state?.success]);
+
+  // Устаревший результат проверки больше не релевантен, если поля поменяли
+  function clearPreview() {
+    if (preview) setPreview(null);
+  }
+
+  function handlePreview() {
+    setPreview(null);
+    startPreview(async () => {
+      const res = await previewSelector(
+        urlRef.current?.value ?? "",
+        selectorRef.current?.value ?? ""
+      );
+      setPreview(res);
+    });
+  }
 
   if (disabled) {
     return (
@@ -50,17 +91,36 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
       </div>
 
       <div>
-        <input name="url" placeholder="https://example.com/product" className={inputClass} />
+        <input
+          name="url"
+          ref={urlRef}
+          onChange={clearPreview}
+          placeholder="https://example.com/product"
+          className={inputClass}
+        />
         <FieldError errors={state?.errors?.url} />
       </div>
 
       <div>
         <input
           name="selector"
+          ref={selectorRef}
+          onChange={clearPreview}
           placeholder="CSS-селектор (напр. .price, #stock)"
           className={inputClass}
         />
         <FieldError errors={state?.errors?.selector} />
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handlePreview}
+            disabled={previewPending}
+            className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          >
+            {previewPending ? "Проверяю..." : "Проверить селектор"}
+          </button>
+          {preview && <PreviewBadge result={preview} />}
+        </div>
       </div>
 
       <div className="flex gap-3">
