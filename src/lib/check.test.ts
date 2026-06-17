@@ -1,6 +1,36 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { compare, toStoredValue } from "./check";
+import * as cheerio from "cheerio";
+import { compare, toStoredValue, extractPrice } from "./check";
+
+const price = (html: string) => extractPrice(cheerio.load(html));
+
+test("extractPrice: JSON-LD offers.price", () => {
+  const html = `<script type="application/ld+json">
+    {"@type":"Product","offers":{"@type":"Offer","price":"1299","priceCurrency":"RUB"}}
+  </script>`;
+  assert.equal(price(html), "1299 ₽");
+});
+
+test("extractPrice: meta product:price", () => {
+  const html = `<meta property="product:price:amount" content="19.99">
+                <meta property="product:price:currency" content="USD">`;
+  assert.equal(price(html), "19.99 $");
+});
+
+test("extractPrice: элемент с классом price", () => {
+  const html = `<div class="product"><span class="price">2 499 ₽</span></div>`;
+  assert.equal(price(html), "2 499 ₽");
+});
+
+test("extractPrice: регэксп по тексту страницы", () => {
+  const html = `<body><p>Сейчас всего 990 руб за штуку</p></body>`;
+  assert.equal(price(html), "990 руб");
+});
+
+test("extractPrice: цены нет — null", () => {
+  assert.equal(price(`<body><p>Описание товара без цены</p></body>`), null);
+});
 
 test("TEXT_CHANGE: первая проверка не считается изменением", () => {
   const r = compare("TEXT_CHANGE", null, { value: "100 ₽", present: true });

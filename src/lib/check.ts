@@ -1,16 +1,144 @@
 import * as cheerio from "cheerio";
 
+type Loaded = ReturnType<typeof cheerio.load>;
+
+/**
+ * Что именно извлекать со страницы:
+ * - PRICE: цену определяем автоматически (селектор не нужен);
+ * - SELECTOR: значение по пользовательскому CSS-селектору.
+ */
+export type ExtractSpec =
+  | { mode: "PRICE" }
+  | { mode: "SELECTOR"; selector: string };
+
 export type CheckResult =
   | { ok: true; value: string; present: boolean }
   | { ok: false; error: string };
 
+const CURRENCY_SYMBOL: Record<string, string> = {
+  RUB: "₽",
+  RUR: "₽",
+  USD: "$",
+  EUR: "€",
+  GBP: "£",
+  UAH: "₴",
+};
+
+// Денежная сумма с символом/кодом валюты до или после числа.
+const PRICE_RE =
+  /(?:[$€£₽₴]|USD|EUR|RUB|RUR|UAH|руб\.?|грн)\s?\d[\d., ]*\d|\d[\d., ]*\d\s?(?:[$€£₽₴]|USD|EUR|RUB|RUR|UAH|руб\.?|грн)/i;
+
+function formatPrice(amount: string | number, currency?: string): string {
+  const cur = currency
+    ? CURRENCY_SYMBOL[currency.toUpperCase()] ?? currency
+    : "";
+  return `${amount} ${cur}`.replace(/\s+/g, " ").trim();
+}
+
+/** Ищет первую денежную сумму в произвольном тексте. */
+function matchPrice(text: string): string | null {
+  const m = text.replace(/\s+/g, " ").match(PRICE_RE);
+  return m ? m[0].replace(/\s+/g, " ").trim() : null;
+}
+
+/** Рекурсивно ищет цену в распарсенном JSON-LD (Schema.org Product/Offer). */
+function findPriceInJsonLd(node: unknown): string | null {
+  if (node == null) return null;
+  if (Array.isArray(node)) {
+    for (const item of node) {
+      const r = findPriceInJsonLd(item);
+      if (r) return r;
+    }
+    return null;
+  }
+  if (typeof node !== "object") return null;
+
+  const obj = node as Record<string, unknown>;
+  for (const key of ["price", "lowPrice"]) {
+    const v = obj[key];
+    if ((typeof v === "string" || typeof v === "number") && /\d/.test(String(v))) {
+      const cur = obj["priceCurrency"];
+      return formatPrice(v, typeof cur === "string" ? cur : undefined);
+    }
+  }
+  if (obj.offers) {
+    const r = findPriceInJsonLd(obj.offers);
+    if (r) return r;
+  }
+  for (const k of Object.keys(obj)) {
+    if (k === "offers") continue;
+    const r = findPriceInJsonLd(obj[k]);
+    if (r) return r;
+  }
+  return null;
+}
+
 /**
- * Загружает страницу и извлекает значение по CSS-селектору.
+ * Автоопределение цены без селектора. Слои по убыванию надёжности:
+ * 1) JSON-LD (Schema.org); 2) meta-теги (OpenGraph/microdata);
+ * 3) типовые элементы с ценой; 4) регэксп по тексту страницы.
+ */
+export function extractPrice($: Loaded): string | null {
+  let fromJsonLd: string | null = null;
+  $('script[type="application/ld+json"]').each((_, el) => {
+    if (fromJsonLd) return;
+    try {
+      fromJsonLd = findPriceInJsonLd(JSON.parse($(el).text()));
+    } catch {
+      // битый JSON-LD игнорируем
+    }
+  });
+  if (fromJsonLd) return fromJsonLd;
+
+  const metaPairs: [string, string][] = [
+    ['meta[property="product:price:amount"]', 'meta[property="product:price:currency"]'],
+    ['meta[property="og:price:amount"]', 'meta[property="og:price:currency"]'],
+    ['meta[itemprop="price"]', 'meta[itemprop="priceCurrency"]'],
+  ];
+  for (const [amountSel, currencySel] of metaPairs) {
+    const amount = $(amountSel).attr("content");
+    if (amount && /\d/.test(amount)) {
+      return formatPrice(amount.trim(), $(currencySel).attr("content"));
+    }
+  }
+
+  const elementSelectors = [
+    '[itemprop="price"]',
+    "[data-price]",
+    '[class*="price" i]',
+    '[id*="price" i]',
+  ];
+  for (const sel of elementSelectors) {
+    let found: string | null = null;
+    $(sel).each((_, el) => {
+      if (found) return;
+      const $el = $(el);
+      found = matchPrice($el.attr("content") ?? $el.text());
+    });
+    if (found) return found;
+  }
+
+  return matchPrice($("body").text());
+}
+
+function extract($: Loaded, spec: ExtractSpec): { value: string; present: boolean } {
+  if (spec.mode === "PRICE") {
+    const price = extractPrice($);
+    return { value: price ?? "", present: price !== null };
+  }
+  const el = $(spec.selector).first();
+  const present = el.length > 0;
+  const value = present ? el.text().replace(/\s+/g, " ").trim() : "";
+  return { value, present };
+}
+
+/**
+ * Загружает страницу и извлекает значение согласно spec.
  * MVP: только статичный HTML (без JS-рендеринга).
  */
 export async function fetchValue(
   url: string,
-  selector: string,
+  spec: ExtractSpec,
   timeoutMs = 15000
 ): Promise<CheckResult> {
   const controller = new AbortController();
@@ -33,9 +161,7 @@ export async function fetchValue(
 
     const html = await res.text();
     const $ = cheerio.load(html);
-    const el = $(selector).first();
-    const present = el.length > 0;
-    const value = present ? el.text().replace(/\s+/g, " ").trim() : "";
+    const { value, present } = extract($, spec);
 
     return { ok: true, value, present };
   } catch (err) {

@@ -21,7 +21,11 @@ async function runDueChecks() {
   console.log(`[worker] проверяю ${due.length} трекер(ов)`);
 
   for (const tracker of due) {
-    const result = await fetchValue(tracker.url, tracker.selector);
+    const spec =
+      tracker.mode === "PRICE"
+        ? ({ mode: "PRICE" } as const)
+        : ({ mode: "SELECTOR", selector: tracker.selector ?? "" } as const);
+    const result = await fetchValue(tracker.url, spec);
     const nextCheckAt = new Date(Date.now() + tracker.intervalMinutes * 60_000);
 
     if (!result.ok) {
@@ -40,7 +44,10 @@ async function runDueChecks() {
         where: { id: tracker.id },
         data: {
           status: "ERROR",
-          lastError: "Селектор не нашёл элемент на странице",
+          lastError:
+            tracker.mode === "PRICE"
+              ? "Не удалось найти цену на странице"
+              : "Селектор не нашёл элемент на странице",
           lastCheckedAt: now,
           nextCheckAt,
         },

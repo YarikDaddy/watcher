@@ -40,6 +40,11 @@ enum TrackerType {
   PRESENCE    // следим за появлением/исчезновением элемента
 }
 
+enum TrackerMode {
+  PRICE    // цена определяется автоматически, селектор не нужен
+  SELECTOR // продвинутый режим: пользователь задаёт свой CSS-селектор
+}
+
 enum TrackerStatus {
   PENDING // ещё ни разу не проверяли
   OK      // проверен, изменений нет
@@ -53,7 +58,11 @@ model Tracker {
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name            String
   url             String
-  selector        String
+  // В режиме PRICE селектор не нужен (определяем цену автоматически),
+  // поэтому поле необязательное. @default(SELECTOR) сохраняет поведение
+  // существующих трекеров, созданных до появления режимов.
+  mode            TrackerMode   @default(SELECTOR)
+  selector        String?
   type            TrackerType   @default(TEXT_CHANGE)
   intervalMinutes Int           @default(60)
   isActive        Boolean       @default(true)

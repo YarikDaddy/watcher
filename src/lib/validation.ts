@@ -25,23 +25,32 @@ export type AuthFormState =
 export const MIN_INTERVAL_MINUTES = 60;
 export const FREE_TIER_TRACKER_LIMIT = 3;
 
-export const TrackerSchema = z.object({
-  name: z.string().trim().min(1, { error: "Введите название." }).max(100),
-  url: z.url({ error: "Введите корректный URL (с http/https)." }).trim(),
-  selector: z
-    .string()
-    .trim()
-    .min(1, { error: "Введите CSS-селектор." })
-    .max(200),
-  type: z.enum(["TEXT_CHANGE", "PRESENCE"], { error: "Выберите тип." }),
-  intervalMinutes: z.coerce
-    .number({ error: "Интервал должен быть числом." })
-    .int()
-    .min(MIN_INTERVAL_MINUTES, {
-      error: `Минимальный интервал — ${MIN_INTERVAL_MINUTES} минут.`,
-    })
-    .max(1440),
-});
+export const TrackerSchema = z
+  .object({
+    // Название необязательное: если пусто — подставим домен в экшене.
+    name: z.string().trim().max(100).optional(),
+    url: z.url({ error: "Введите корректный URL (с http/https)." }).trim(),
+    mode: z.enum(["PRICE", "SELECTOR"]).default("PRICE"),
+    selector: z.string().trim().max(200).optional(),
+    type: z.enum(["TEXT_CHANGE", "PRESENCE"]).default("TEXT_CHANGE"),
+    intervalMinutes: z.coerce
+      .number({ error: "Интервал должен быть числом." })
+      .int()
+      .min(MIN_INTERVAL_MINUTES, {
+        error: `Минимальный интервал — ${MIN_INTERVAL_MINUTES} минут.`,
+      })
+      .max(1440),
+  })
+  .superRefine((data, ctx) => {
+    // CSS-селектор обязателен только в продвинутом режиме.
+    if (data.mode === "SELECTOR" && !data.selector) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["selector"],
+        message: "Введите CSS-селектор.",
+      });
+    }
+  });
 
 export type TrackerFormState =
   | {

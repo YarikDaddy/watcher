@@ -54,9 +54,14 @@ export default async function DashboardPage() {
         </div>
 
         {trackers.length === 0 ? (
-          <p className="rounded-lg border border-dashed border-gray-300 p-8 text-center text-gray-500 dark:border-gray-700">
-            Пока нет трекеров. Добавьте первый ниже.
-          </p>
+          <div className="rounded-lg border border-dashed border-gray-300 p-6 dark:border-gray-700">
+            <p className="font-medium">Добавьте первый трекер за минуту 👇</p>
+            <ol className="mt-3 flex flex-col gap-1.5 text-sm text-gray-500">
+              <li>1. Вставьте ссылку на товар или страницу.</li>
+              <li>2. Watcher сам найдёт цену — нажмите «Проверить», чтобы убедиться.</li>
+              <li>3. Привяжите Telegram выше — и получайте алерт при изменении.</li>
+            </ol>
+          </div>
         ) : (
           <ul className="flex flex-col gap-2">
             {trackers.map((t) => {
@@ -77,7 +82,12 @@ export default async function DashboardPage() {
                       {t.url}
                     </a>
                     <p className="mt-1 text-xs text-gray-500">
-                      <code>{t.selector}</code> · раз в {intervalLabel(t.intervalMinutes)} ·{" "}
+                      {t.mode === "PRICE" ? (
+                        <>💰 цена</>
+                      ) : (
+                        <code>{t.selector}</code>
+                      )}{" "}
+                      · раз в {intervalLabel(t.intervalMinutes)} ·{" "}
                       <span className={status.className}>{status.text}</span>
                     </p>
                   </div>
