@@ -95,9 +95,27 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Режимы / ценность */}
+      {/* Три столпа для студий */}
+      <section className="mx-auto w-full max-w-5xl px-4 py-16">
+        <h2 className="text-center text-2xl font-semibold">{t.pillarsTitle}</h2>
+        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+          {t.pillars.map((p) => (
+            <div
+              key={p.title}
+              className="rounded-2xl border border-gray-200 bg-white p-6 transition hover:shadow-md dark:border-gray-800 dark:bg-gray-950"
+            >
+              <span className="text-3xl">{p.icon}</span>
+              <h3 className="mt-4 text-lg font-medium">{p.title}</h3>
+              <p className="mt-2 text-sm text-gray-500">{p.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Что можно отслеживать */}
       <section className="mx-auto w-full max-w-5xl px-4 py-16">
         <h2 className="text-center text-2xl font-semibold">{t.modesTitle}</h2>
+        <p className="mx-auto mt-3 max-w-xl text-center text-gray-500">{t.modesSubtitle}</p>
         <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {t.modes.map((m) => (
             <div
@@ -112,15 +130,15 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Для агентств / white-label статус-страницы */}
+      {/* White-label статус-страница клиента */}
       <section className="mx-auto w-full max-w-5xl px-4 py-16">
         <div className="rounded-3xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-8 dark:border-gray-800 dark:from-blue-950/30 dark:to-gray-950 sm:p-12">
           <div className="grid items-center gap-10 lg:grid-cols-2">
             <div>
-              <h2 className="text-2xl font-semibold sm:text-3xl">{t.forAgenciesTitle}</h2>
-              <p className="mt-4 text-gray-500">{t.forAgenciesSubtitle}</p>
+              <h2 className="text-2xl font-semibold sm:text-3xl">{t.statusTitle}</h2>
+              <p className="mt-4 text-gray-500">{t.statusSubtitle}</p>
               <ul className="mt-6 flex flex-col gap-3">
-                {t.forAgenciesPoints.map((p) => (
+                {t.statusPoints.map((p) => (
                   <li key={p} className="flex items-start gap-2 text-sm">
                     <span className="text-blue-600">✓</span>
                     {p}
@@ -139,10 +157,11 @@ export default async function Home() {
               </div>
               <div className="mt-3 flex flex-col gap-2">
                 {t.statusPageRows.map((row) => {
-                  const tone =
-                    row.tone === "warn"
-                      ? { dot: "bg-amber-500", text: "text-amber-600" }
-                      : { dot: "bg-green-500", text: "text-green-600" };
+                  const tones: Record<string, { dot: string; text: string }> = {
+                    ok: { dot: "bg-green-500", text: "text-green-600" },
+                    warn: { dot: "bg-amber-500", text: "text-amber-600" },
+                  };
+                  const tone = tones[row.tone] ?? tones.ok;
                   return (
                     <div
                       key={row.name}
