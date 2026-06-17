@@ -148,10 +148,12 @@ export async function fetchValue(
     const res = await fetch(url, {
       signal: controller.signal,
       headers: {
-        // Часть сайтов отдаёт пустоту без User-Agent
+        // Браузерный User-Agent: на «ботовский» UA многие сайты отвечают 403.
         "User-Agent":
-          "Mozilla/5.0 (compatible; WatcherBot/1.0; +https://github.com/watcher)",
-        Accept: "text/html,application/xhtml+xml",
+          "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+        Accept:
+          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
       },
     });
 
