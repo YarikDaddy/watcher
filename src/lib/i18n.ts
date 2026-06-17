@@ -148,11 +148,11 @@ const en = {
   dashboard: {
     loggedInAs: "Logged in as",
     trackers: "Trackers",
-    emptyTitle: "Add your first tracker in a minute 👇",
+    emptyTitle: "Add your first client and site 👇",
     onboarding: [
-      "Paste a product link, or pick a crypto/rate.",
-      "Hit “Check” — Watcher shows what it found right away.",
-      "Connect Telegram above and get an alert on every change.",
+      "Create a client above — the company whose site you look after.",
+      "Add their site below: watch its SSL, a price, or any element.",
+      "Connect Telegram for alerts — then share a branded status page.",
     ],
     delete: "Delete",
     edit: "Edit",
@@ -514,11 +514,11 @@ const ru: typeof en = {
   dashboard: {
     loggedInAs: "Вы вошли как",
     trackers: "Трекеры",
-    emptyTitle: "Добавьте первый трекер за минуту 👇",
+    emptyTitle: "Добавьте первого клиента и его сайт 👇",
     onboarding: [
-      "Вставьте ссылку на товар или выберите крипту/курс.",
-      "Нажмите «Проверить» — Watcher сразу покажет, что нашёл.",
-      "Привяжите Telegram выше — и получайте алерт при изменении.",
+      "Создайте клиента выше — компанию, чей сайт вы ведёте.",
+      "Добавьте его сайт ниже: следите за SSL, ценой или любым элементом.",
+      "Привяжите Telegram для алертов — и поделитесь брендированной статус-страницей.",
     ],
     delete: "Удалить",
     edit: "Изменить",
