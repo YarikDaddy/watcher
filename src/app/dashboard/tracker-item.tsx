@@ -16,11 +16,14 @@ export type TrackerView = {
   asset: string | null;
   assetCondition: "ABOVE" | "BELOW" | "PERCENT" | null;
   threshold: number | null;
+  clientId: string | null;
   intervalMinutes: number;
   status: string;
   lastValue: string | null;
   isActive: boolean;
 };
+
+export type ClientOption = { id: string; name: string };
 
 const STATUS_CLASS: Record<string, string> = {
   PENDING: "text-gray-500",
@@ -53,10 +56,14 @@ export default function TrackerItem({
   t,
   d,
   form,
+  clients,
+  clientsDict,
 }: {
   t: TrackerView;
   d: Dict["dashboard"];
   form: Dict["form"];
+  clients: ClientOption[];
+  clientsDict: Dict["clients"];
 }) {
   const [editing, setEditing] = useState(false);
   const [state, setState] = useState<TrackerFormState>(undefined);
@@ -188,6 +195,17 @@ export default function TrackerItem({
                 <option value="PRESENCE">{form.typePresence}</option>
               </select>
             </>
+          )}
+
+          {clients.length > 0 && (
+            <select name="clientId" defaultValue={t.clientId ?? ""} className={inputClass}>
+              <option value="">{clientsDict.formNone}</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
           )}
 
           <input name="name" defaultValue={t.name} placeholder={form.namePlaceholder} className={inputClass} />

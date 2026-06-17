@@ -20,6 +20,22 @@ function hostnameOf(url: string): string {
   }
 }
 
+/**
+ * Нормализует привязку к клиенту: пусто → null; иначе проверяем, что клиент
+ * принадлежит пользователю (чужой/несуществующий id молча сбрасываем в null).
+ */
+async function resolveClientId(
+  clientId: string | undefined,
+  userId: string
+): Promise<string | null> {
+  if (!clientId) return null;
+  const client = await prisma.client.findFirst({
+    where: { id: clientId, userId },
+    select: { id: true },
+  });
+  return client ? client.id : null;
+}
+
 export async function createTracker(
   _state: TrackerFormState,
   formData: FormData
@@ -36,6 +52,7 @@ export async function createTracker(
     asset: formData.get("asset") ?? undefined,
     assetCondition: formData.get("assetCondition") ?? undefined,
     threshold: formData.get("threshold") ?? undefined,
+    clientId: formData.get("clientId") ?? undefined,
     intervalMinutes: formData.get("intervalMinutes"),
   });
 
@@ -56,6 +73,7 @@ export async function createTracker(
 
   const { name, url, mode, selector, type, asset, assetCondition, threshold, intervalMinutes } =
     parsed.data;
+  const clientId = await resolveClientId(parsed.data.clientId, userId);
 
   let data;
   if (mode === "ASSET") {
@@ -64,6 +82,7 @@ export async function createTracker(
     }
     data = {
       userId,
+      clientId,
       name: name || assetLabel(asset),
       mode,
       asset,
@@ -76,6 +95,7 @@ export async function createTracker(
     // Цену определяем автоматически, сравнение всегда по тексту цены.
     data = {
       userId,
+      clientId,
       name: name || hostnameOf(url!),
       url,
       mode,
@@ -84,7 +104,7 @@ export async function createTracker(
       intervalMinutes,
     };
   } else {
-    data = { userId, name: name || hostnameOf(url!), url, mode, selector: selector!, type, intervalMinutes };
+    data = { userId, clientId, name: name || hostnameOf(url!), url, mode, selector: selector!, type, intervalMinutes };
   }
 
   try {
@@ -153,6 +173,7 @@ export async function updateTracker(
     asset: existing.asset ?? undefined, // актив не редактируется
     assetCondition: formData.get("assetCondition") ?? undefined,
     threshold: formData.get("threshold") ?? undefined,
+    clientId: formData.get("clientId") ?? undefined,
     intervalMinutes: formData.get("intervalMinutes"),
   });
 
@@ -166,10 +187,12 @@ export async function updateTracker(
   }
 
   const { name, url, selector, type, assetCondition, threshold, intervalMinutes } = parsed.data;
+  const clientId = await resolveClientId(parsed.data.clientId, userId);
   // Свежий старт: сбрасываем состояние, чтобы новые параметры применились без
   // ложного алерта и с новой точкой отсчёта.
   const base = {
     intervalMinutes,
+    clientId,
     status: "PENDING" as const,
     lastValue: null,
     baselinePrice: null,

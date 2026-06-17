@@ -33,11 +33,23 @@ export type AuthFormState =
 export const MIN_INTERVAL_MINUTES = 1;
 export const FREE_TIER_TRACKER_LIMIT = 3;
 
+export function makeClientSchema(v: Val) {
+  return z.object({
+    name: z.string({ error: v.clientNameRequired }).trim().min(1, { error: v.clientNameRequired }).max(100),
+  });
+}
+
+export type ClientFormState =
+  | { error?: string; success?: boolean }
+  | undefined;
+
 export function makeTrackerSchema(v: Val) {
   return z
     .object({
       // Название необязательное: если пусто — подставим домен/актив в экшене.
       name: z.string().trim().max(100).optional(),
+      // Привязка к клиенту (опционально). "" в форме трактуем как «без клиента».
+      clientId: z.string().trim().optional(),
       // URL не нужен в режиме ASSET — проверяем его в superRefine.
       url: z.string().trim().optional(),
       mode: z.enum(["PRICE", "SELECTOR", "ASSET"]).default("PRICE"),

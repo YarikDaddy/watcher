@@ -139,6 +139,20 @@ const en = {
       ERROR: "error",
     },
   },
+  clients: {
+    title: "Clients",
+    intro: "Group trackers by client to keep client sites organized.",
+    addPlaceholder: "New client name",
+    add: "Add client",
+    adding: "Adding...",
+    deleteTitle: "Delete client",
+    delete: "Delete",
+    unassigned: "No client",
+    noTrackers: "No trackers yet",
+    countSuffix: "tracker(s)",
+    formLabel: "Client",
+    formNone: "— no client —",
+  },
   form: {
     newTracker: "New tracker",
     whatToTrack: "What to track",
@@ -234,6 +248,7 @@ const en = {
     passwordLetter: "Needs at least one letter.",
     passwordDigit: "Needs at least one digit.",
     passwordRequired: "Enter a password.",
+    clientNameRequired: "Enter a client name.",
   },
   // Сообщения рантайма/экшенов — server-side
   errors: {
@@ -412,6 +427,20 @@ const ru: typeof en = {
       ERROR: "ошибка",
     },
   },
+  clients: {
+    title: "Клиенты",
+    intro: "Группируйте трекеры по клиентам, чтобы держать их сайты в порядке.",
+    addPlaceholder: "Название клиента",
+    add: "Добавить клиента",
+    adding: "Добавляю...",
+    deleteTitle: "Удалить клиента",
+    delete: "Удалить",
+    unassigned: "Без клиента",
+    noTrackers: "Пока нет трекеров",
+    countSuffix: "трекер(ов)",
+    formLabel: "Клиент",
+    formNone: "— без клиента —",
+  },
   form: {
     newTracker: "Новый трекер",
     whatToTrack: "Что отслеживать",
@@ -504,6 +533,7 @@ const ru: typeof en = {
     passwordLetter: "Должна быть хотя бы одна буква.",
     passwordDigit: "Должна быть хотя бы одна цифра.",
     passwordRequired: "Введите пароль.",
+    clientNameRequired: "Введите название клиента.",
   },
   errors: {
     blocked: "Сайт блокирует автоматические проверки — такой сайт мониторить не получится",

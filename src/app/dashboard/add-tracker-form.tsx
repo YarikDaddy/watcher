@@ -9,6 +9,7 @@ import type { Dict } from "@/lib/i18n";
 type Mode = "PRICE" | "ASSET" | "SELECTOR";
 type Condition = "ABOVE" | "BELOW" | "PERCENT";
 type FormDict = Dict["form"];
+type ClientOption = { id: string; name: string };
 
 const inputClass =
   "w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
@@ -58,9 +59,13 @@ function PreviewBadge({
 export default function AddTrackerForm({
   disabled,
   dict,
+  clients,
+  clientsDict,
 }: {
   disabled: boolean;
   dict: FormDict;
+  clients: ClientOption[];
+  clientsDict: Dict["clients"];
 }) {
   const [state, action, pending] = useActionState(createTracker, undefined);
   const formRef = useRef<HTMLFormElement>(null);
@@ -235,6 +240,20 @@ export default function AddTrackerForm({
         <input name="name" placeholder={dict.namePlaceholder} className={inputClass} />
         <FieldError errors={state?.errors?.name} />
       </div>
+
+      {clients.length > 0 && (
+        <div>
+          <label className="mb-1 block text-sm text-gray-500">{clientsDict.formLabel}</label>
+          <select name="clientId" defaultValue="" className={inputClass}>
+            <option value="">{clientsDict.formNone}</option>
+            {clients.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       <div className="flex gap-3">
         {mode === "SELECTOR" && (

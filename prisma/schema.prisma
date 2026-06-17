@@ -21,8 +21,22 @@ model User {
   // Язык интерфейса/алертов (для сообщений воркера в Telegram)
   locale            String    @default("en")
   trackers          Tracker[]
+  clients           Client[]
   sessions          Session[]
   createdAt         DateTime  @default(now())
+}
+
+// Клиент агентства/фрилансера: группа трекеров по одному заказчику.
+// Удаление клиента НЕ удаляет трекеры — они становятся «без клиента» (SetNull).
+model Client {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  trackers  Tracker[]
+  createdAt DateTime  @default(now())
+
+  @@index([userId])
 }
 
 model Session {
@@ -65,6 +79,10 @@ model Tracker {
   id              String        @id @default(cuid())
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // Группировка по клиенту (опционально). При удалении клиента трекер
+  // не удаляется, а отвязывается (clientId → null).
+  clientId        String?
+  client          Client?       @relation(fields: [clientId], references: [id], onDelete: SetNull)
   name            String
   // URL не нужен в режиме ASSET (цена берётся из API по символу актива).
   url             String?
@@ -91,6 +109,7 @@ model Tracker {
   createdAt       DateTime      @default(now())
 
   @@index([isActive, nextCheckAt])
+  @@index([clientId])
 }
 
 model Snapshot {

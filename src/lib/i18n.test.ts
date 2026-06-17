@@ -5,7 +5,7 @@ import { getDict } from "./i18n";
 // Эти секции словаря передаются пропсами в client-компоненты, поэтому НЕ должны
 // содержать функций: иначе server→client сериализация падает в рантайме, а
 // `next build` это не ловит (см. баг 4b6500b: dict.dashboard.timeAgo).
-const CLIENT_SECTIONS = ["form", "dashboard", "telegram", "auth"] as const;
+const CLIENT_SECTIONS = ["form", "dashboard", "telegram", "auth", "clients"] as const;
 
 function functionPaths(obj: unknown, path = ""): string[] {
   if (typeof obj === "function") return [path];

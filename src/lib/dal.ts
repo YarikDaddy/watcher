@@ -32,6 +32,16 @@ export const getTrackers = cache(async () => {
   });
 });
 
+/** Клиенты текущего пользователя (для группировки трекеров). */
+export const getClients = cache(async () => {
+  const { userId } = await verifySession();
+  return prisma.client.findMany({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, name: true },
+  });
+});
+
 /** Последние срабатывания (алерты) по всем трекерам пользователя. */
 export const getRecentAlerts = cache(async () => {
   const { userId } = await verifySession();
