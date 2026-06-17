@@ -15,7 +15,24 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const dict = getDict(await getLocale());
-  return { title: dict.meta.title, description: dict.meta.description };
+  const { title, description } = dict.meta;
+  return {
+    metadataBase: new URL("https://watcher-puce.vercel.app"),
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: "website",
+      siteName: "Watcher",
+      url: "/",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
 }
 
 export default async function RootLayout({
