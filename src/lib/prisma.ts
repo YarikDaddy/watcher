@@ -7,14 +7,8 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Явно ставим sslmode=verify-full вместо устаревших prefer/require/verify-ca,
-// чтобы убрать deprecation-warning pg (фактическое поведение и так verify-full).
-function normalizeSsl(url?: string): string | undefined {
-  return url?.replace(/sslmode=(prefer|require|verify-ca)\b/, "sslmode=verify-full");
-}
-
 function createClient() {
-  const adapter = new PrismaPg({ connectionString: normalizeSsl(process.env.DATABASE_URL) });
+  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
   return new PrismaClient({
     adapter,
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
