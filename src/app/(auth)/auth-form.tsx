@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useActionState } from "react";
 import type { AuthFormState } from "@/lib/validation";
+import type { Dict } from "@/lib/i18n";
 
 type AuthAction = (
   state: AuthFormState,
@@ -11,22 +12,19 @@ type AuthAction = (
 
 type Props = {
   action: AuthAction;
-  title: string;
-  submitLabel: string;
-  altText: string;
-  altHref: string;
-  altLabel: string;
+  mode: "login" | "signup";
+  dict: Dict["auth"];
 };
 
-export default function AuthForm({
-  action,
-  title,
-  submitLabel,
-  altText,
-  altHref,
-  altLabel,
-}: Props) {
+export default function AuthForm({ action, mode, dict }: Props) {
   const [state, formAction, pending] = useActionState(action, undefined);
+
+  const isLogin = mode === "login";
+  const title = isLogin ? dict.loginTitle : dict.signupTitle;
+  const submitLabel = isLogin ? dict.loginSubmit : dict.signupSubmit;
+  const altText = isLogin ? dict.noAccount : dict.haveAccount;
+  const altHref = isLogin ? "/signup" : "/login";
+  const altLabel = isLogin ? dict.signupLink : dict.loginLink;
 
   return (
     <div className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
@@ -35,7 +33,7 @@ export default function AuthForm({
       <form action={formAction} className="flex flex-col gap-4">
         <div>
           <label htmlFor="email" className="mb-1 block text-sm font-medium">
-            Email
+            {dict.email}
           </label>
           <input
             id="email"
@@ -54,13 +52,13 @@ export default function AuthForm({
 
         <div>
           <label htmlFor="password" className="mb-1 block text-sm font-medium">
-            Пароль
+            {dict.password}
           </label>
           <input
             id="password"
             name="password"
             type="password"
-            autoComplete="current-password"
+            autoComplete={isLogin ? "current-password" : "new-password"}
             required
             className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
           />

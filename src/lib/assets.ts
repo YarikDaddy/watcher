@@ -14,10 +14,10 @@ export const ASSETS: Asset[] = [
   { value: "crypto:ETH", label: "Ethereum (ETH)", unit: "$" },
   { value: "crypto:SOL", label: "Solana (SOL)", unit: "$" },
   { value: "crypto:DOGE", label: "Dogecoin (DOGE)", unit: "$" },
-  { value: "metal:XAU", label: "Золото (XAU, унция)", unit: "$" },
-  { value: "metal:XAG", label: "Серебро (XAG, унция)", unit: "$" },
-  { value: "fiat:EUR", label: "Доллар → Евро (USD/EUR)", unit: "" },
-  { value: "fiat:RUB", label: "Доллар → Рубль (USD/RUB)", unit: "" },
+  { value: "metal:XAU", label: "Gold (XAU)", unit: "$" },
+  { value: "metal:XAG", label: "Silver (XAG)", unit: "$" },
+  { value: "fiat:EUR", label: "USD → EUR", unit: "" },
+  { value: "fiat:RUB", label: "USD → RUB", unit: "" },
 ];
 
 const ASSET_VALUES = new Set(ASSETS.map((a) => a.value));

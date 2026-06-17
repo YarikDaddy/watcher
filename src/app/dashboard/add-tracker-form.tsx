@@ -4,9 +4,11 @@ import { useActionState, useEffect, useRef, useState, useTransition } from "reac
 import { createTracker } from "@/app/actions/trackers";
 import { previewTracker, type PreviewResult } from "@/app/actions/preview";
 import { ASSETS } from "@/lib/assets";
+import type { Dict } from "@/lib/i18n";
 
 type Mode = "PRICE" | "ASSET" | "SELECTOR";
 type Condition = "ABOVE" | "BELOW" | "PERCENT";
+type FormDict = Dict["form"];
 
 const inputClass =
   "w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
@@ -24,17 +26,22 @@ function FieldError({ errors }: { errors?: string[] }) {
   );
 }
 
-function PreviewBadge({ result, mode }: { result: PreviewResult; mode: Mode }) {
+function PreviewBadge({
+  result,
+  mode,
+  dict,
+}: {
+  result: PreviewResult;
+  mode: Mode;
+  dict: FormDict;
+}) {
   if (!result.ok) {
     return <span className="text-sm text-red-500">✗ {result.error}</span>;
   }
   if (!result.present) {
     return (
       <span className="text-sm text-amber-600">
-        ⚠{" "}
-        {mode === "PRICE"
-          ? "Цена не нашлась — возможно, сайт подгружает её через JS. Попробуйте другой сайт или режим «Свой селектор»"
-          : "Селектор ничего не нашёл на странице — проверьте его"}
+        ⚠ {mode === "PRICE" ? dict.previewNotFoundPrice : dict.previewNotFoundSelector}
       </span>
     );
   }
@@ -42,12 +49,19 @@ function PreviewBadge({ result, mode }: { result: PreviewResult; mode: Mode }) {
     result.value.length > 80 ? `${result.value.slice(0, 80)}…` : result.value;
   return (
     <span className="text-sm text-green-600">
-      ✓ {mode === "ASSET" ? "Сейчас" : "Нашлось"}: «{value || "пусто"}»
+      ✓ {mode === "ASSET" ? dict.previewFoundAsset : dict.previewFound}: «
+      {value || dict.previewEmpty}»
     </span>
   );
 }
 
-export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
+export default function AddTrackerForm({
+  disabled,
+  dict,
+}: {
+  disabled: boolean;
+  dict: FormDict;
+}) {
   const [state, action, pending] = useActionState(createTracker, undefined);
   const formRef = useRef<HTMLFormElement>(null);
   const urlRef = useRef<HTMLInputElement>(null);
@@ -87,7 +101,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
   if (disabled) {
     return (
       <p className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/40">
-        Достигнут лимит свободного тарифа. Удалите трекер, чтобы добавить новый.
+        {dict.limitReached}
       </p>
     );
   }
@@ -107,11 +121,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
   );
 
   const hint =
-    mode === "PRICE"
-      ? "Вставьте ссылку на товар — Watcher сам найдёт цену. Работает на обычных сайтах; крупные маркетплейсы (Ozon, DNS, WB) защищены от ботов."
-      : mode === "ASSET"
-        ? "Курс крипты, металла или валюты из биржевых API. Алерт по порогу цены или по изменению на %."
-        : "Для продвинутых: задайте CSS-селектор любого элемента на странице.";
+    mode === "PRICE" ? dict.hintPrice : mode === "ASSET" ? dict.hintAsset : dict.hintSelector;
 
   return (
     <form
@@ -120,16 +130,16 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
       onSubmit={clearPreview}
       className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 dark:border-gray-800"
     >
-      <h2 className="font-medium">Новый трекер</h2>
+      <h2 className="font-medium">{dict.newTracker}</h2>
 
       <input type="hidden" name="mode" value={mode} />
 
       <div>
-        <label className="mb-1 block text-sm text-gray-500">Что отслеживать</label>
+        <label className="mb-1 block text-sm text-gray-500">{dict.whatToTrack}</label>
         <div className="flex gap-2">
-          {modeButton("PRICE", "💰 Цена")}
-          {modeButton("ASSET", "📈 Курс / крипта")}
-          {modeButton("SELECTOR", "⚙️ Селектор")}
+          {modeButton("PRICE", dict.modePrice)}
+          {modeButton("ASSET", dict.modeAsset)}
+          {modeButton("SELECTOR", dict.modeSelector)}
         </div>
         <p className="mt-1 text-xs text-gray-500">{hint}</p>
       </div>
@@ -137,7 +147,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
       {mode === "ASSET" ? (
         <>
           <div>
-            <label className="mb-1 block text-sm text-gray-500">Актив</label>
+            <label className="mb-1 block text-sm text-gray-500">{dict.asset}</label>
             <select name="asset" ref={assetRef} onChange={clearPreview} className={inputClass}>
               {ASSETS.map((a) => (
                 <option key={a.value} value={a.value}>
@@ -150,29 +160,31 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-sm text-gray-500">Условие</label>
+              <label className="mb-1 block text-sm text-gray-500">{dict.condition}</label>
               <select
                 name="assetCondition"
                 value={condition}
                 onChange={(e) => setCondition(e.target.value as Condition)}
                 className={inputClass}
               >
-                <option value="BELOW">Цена ниже</option>
-                <option value="ABOVE">Цена выше</option>
-                <option value="PERCENT">Изменение на %</option>
+                <option value="BELOW">{dict.condBelow}</option>
+                <option value="ABOVE">{dict.condAbove}</option>
+                <option value="PERCENT">{dict.condPercent}</option>
               </select>
               <FieldError errors={state?.errors?.assetCondition} />
             </div>
 
             <div className="flex-1">
               <label className="mb-1 block text-sm text-gray-500">
-                {condition === "PERCENT" ? "Процент, %" : "Порог цены"}
+                {condition === "PERCENT" ? dict.thresholdPercent : dict.thresholdPrice}
               </label>
               <input
                 name="threshold"
                 type="number"
                 step="any"
-                placeholder={condition === "PERCENT" ? "напр. 5" : "напр. 60000"}
+                placeholder={
+                  condition === "PERCENT" ? dict.thresholdPercentPh : dict.thresholdPricePh
+                }
                 className={inputClass}
               />
               <FieldError errors={state?.errors?.threshold} />
@@ -186,7 +198,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
               name="url"
               ref={urlRef}
               onChange={clearPreview}
-              placeholder="https://example.com/product"
+              placeholder={dict.urlPlaceholder}
               className={inputClass}
             />
             <FieldError errors={state?.errors?.url} />
@@ -198,7 +210,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
                 name="selector"
                 ref={selectorRef}
                 onChange={clearPreview}
-                placeholder="CSS-селектор (напр. .price, #stock)"
+                placeholder={dict.selectorPlaceholder}
                 className={inputClass}
               />
               <FieldError errors={state?.errors?.selector} />
@@ -214,42 +226,36 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
           disabled={previewPending}
           className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
         >
-          {previewPending ? "Проверяю..." : "Проверить"}
+          {previewPending ? dict.checking : dict.check}
         </button>
-        {preview && <PreviewBadge result={preview} mode={mode} />}
+        {preview && <PreviewBadge result={preview} mode={mode} dict={dict} />}
       </div>
 
       <div>
-        <input
-          name="name"
-          placeholder="Название (необязательно)"
-          className={inputClass}
-        />
+        <input name="name" placeholder={dict.namePlaceholder} className={inputClass} />
         <FieldError errors={state?.errors?.name} />
       </div>
 
       <div className="flex gap-3">
         {mode === "SELECTOR" && (
           <div className="flex-1">
-            <label className="mb-1 block text-sm text-gray-500">Тип изменения</label>
+            <label className="mb-1 block text-sm text-gray-500">{dict.typeLabel}</label>
             <select name="type" defaultValue="TEXT_CHANGE" className={inputClass}>
-              <option value="TEXT_CHANGE">Изменение текста</option>
-              <option value="PRESENCE">Появление/исчезновение</option>
+              <option value="TEXT_CHANGE">{dict.typeText}</option>
+              <option value="PRESENCE">{dict.typePresence}</option>
             </select>
             <FieldError errors={state?.errors?.type} />
           </div>
         )}
 
         <div className="flex-1">
-          <label className="mb-1 block text-sm text-gray-500">Проверять раз в</label>
+          <label className="mb-1 block text-sm text-gray-500">{dict.checkEvery}</label>
           <select name="intervalMinutes" defaultValue="60" className={inputClass}>
-            <option value="1">1 минута</option>
-            <option value="5">5 минут</option>
-            <option value="60">1 час</option>
-            <option value="180">3 часа</option>
-            <option value="360">6 часов</option>
-            <option value="720">12 часов</option>
-            <option value="1440">сутки</option>
+            {(["1", "5", "60", "180", "360", "720", "1440"] as const).map((v) => (
+              <option key={v} value={v}>
+                {dict.intervals[v]}
+              </option>
+            ))}
           </select>
           <FieldError errors={state?.errors?.intervalMinutes} />
         </div>
@@ -262,7 +268,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
         disabled={pending}
         className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        {pending ? "Добавляю..." : "Добавить трекер"}
+        {pending ? dict.adding : dict.addTracker}
       </button>
     </form>
   );

@@ -1,15 +1,8 @@
 import AuthForm from "../auth-form";
 import { login } from "@/app/actions/auth";
+import { getLocale, getDict } from "@/lib/i18n";
 
-export default function LoginPage() {
-  return (
-    <AuthForm
-      action={login}
-      title="Вход в Watcher"
-      submitLabel="Войти"
-      altText="Нет аккаунта?"
-      altHref="/signup"
-      altLabel="Зарегистрироваться"
-    />
-  );
+export default async function LoginPage() {
+  const dict = getDict(await getLocale());
+  return <AuthForm action={login} mode="login" dict={dict.auth} />;
 }
