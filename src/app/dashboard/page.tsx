@@ -1,6 +1,7 @@
+import { headers } from "next/headers";
 import { getUser, getTrackers, getClients, getRecentAlerts } from "@/lib/dal";
 import { logout } from "@/app/actions/auth";
-import { deleteClient } from "@/app/actions/clients";
+import { deleteClient, setBrandName, toggleClientShare } from "@/app/actions/clients";
 import { FREE_TIER_TRACKER_LIMIT } from "@/lib/validation";
 import { getLocale, getDict, type Dict } from "@/lib/i18n";
 import AddTrackerForm from "./add-tracker-form";
@@ -33,6 +34,12 @@ export default async function DashboardPage() {
   const d = dict.dashboard;
   const c = dict.clients;
   const atLimit = trackers.length >= FREE_TIER_TRACKER_LIMIT;
+
+  // Базовый URL для публичных статус-ссылок (из заголовков запроса).
+  const hdrs = await headers();
+  const host = hdrs.get("host") ?? "";
+  const proto = hdrs.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  const baseUrl = host ? `${proto}://${host}` : "";
 
   // Группируем трекеры по клиенту: clientId → список; null — «без клиента».
   const grouped = new Map<string | null, TrackerRow[]>();
@@ -101,6 +108,27 @@ export default async function DashboardPage() {
         <h2 className="mb-1 text-lg font-medium">{c.title}</h2>
         <p className="mb-3 text-sm text-gray-500">{c.intro}</p>
         <AddClientForm dict={c} />
+
+        <form
+          action={setBrandName}
+          className="mt-4 flex flex-col gap-2 border-t border-gray-200 pt-4 dark:border-gray-800"
+        >
+          <label className="text-sm text-gray-500">{c.brandLabel}</label>
+          <div className="flex gap-2">
+            <input
+              name="brandName"
+              defaultValue={user?.brandName ?? ""}
+              placeholder={c.brandPlaceholder}
+              className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+            />
+            <button
+              type="submit"
+              className="shrink-0 rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+            >
+              {c.brandSave}
+            </button>
+          </div>
+        </form>
       </section>
 
       <section className="mb-8">
@@ -137,17 +165,42 @@ export default async function DashboardPage() {
                         · {list.length} {c.countSuffix}
                       </span>
                     </h3>
-                    <form action={deleteClient}>
-                      <input type="hidden" name="id" value={client.id} />
-                      <button
-                        type="submit"
-                        title={c.deleteTitle}
-                        className="rounded-md border border-gray-300 px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:border-gray-700 dark:hover:bg-red-950/40"
-                      >
-                        {c.delete}
-                      </button>
-                    </form>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <form action={toggleClientShare}>
+                        <input type="hidden" name="id" value={client.id} />
+                        <button
+                          type="submit"
+                          className="rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+                        >
+                          {client.shareToken ? c.shareDisable : c.shareEnable}
+                        </button>
+                      </form>
+                      <form action={deleteClient}>
+                        <input type="hidden" name="id" value={client.id} />
+                        <button
+                          type="submit"
+                          title={c.deleteTitle}
+                          className="rounded-md border border-gray-300 px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:border-gray-700 dark:hover:bg-red-950/40"
+                        >
+                          {c.delete}
+                        </button>
+                      </form>
+                    </div>
                   </div>
+
+                  {client.shareToken && (
+                    <p className="mb-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500">
+                      <span>{c.shareHint}</span>
+                      <a
+                        href={`${baseUrl}/status/${client.shareToken}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="break-all font-medium text-blue-600 hover:underline"
+                      >
+                        {`${baseUrl}/status/${client.shareToken}`}
+                      </a>
+                    </p>
+                  )}
                   {list.length > 0 ? (
                     renderList(list)
                   ) : (

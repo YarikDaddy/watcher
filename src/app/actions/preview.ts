@@ -2,6 +2,7 @@
 
 import { fetchValue, checkErrorMessage } from "@/lib/check";
 import { fetchAssetPrice, isKnownAsset, assetUnit } from "@/lib/assets";
+import { fetchCertInfo, hostnameFromUrl } from "@/lib/cert";
 import { verifySession } from "@/lib/dal";
 import { getLocale, getDict, type Dict } from "@/lib/i18n";
 
@@ -10,7 +11,7 @@ export type PreviewResult =
   | { ok: false; error: string };
 
 export type PreviewInput = {
-  mode: "PRICE" | "SELECTOR" | "ASSET";
+  mode: "PRICE" | "SELECTOR" | "ASSET" | "CERT";
   url?: string;
   selector?: string;
   asset?: string;
@@ -54,6 +55,19 @@ export async function previewTracker(input: PreviewInput): Promise<PreviewResult
   if (!isHttpUrl(url)) {
     return { ok: false, error: dict.errors.urlInvalid };
   }
+
+  if (input.mode === "CERT") {
+    const host = hostnameFromUrl(url);
+    if (!host) return { ok: false, error: dict.errors.urlInvalid };
+    const res = await fetchCertInfo(host);
+    if (!res.ok) return { ok: false, error: checkErrorMessage(res.error, dict.errors) };
+    const value =
+      res.daysLeft <= 0
+        ? dict.form.certExpired
+        : `${dict.form.certExpiresIn} ${res.daysLeft} ${dict.form.daysShort}`;
+    return { ok: true, present: true, value };
+  }
+
   if (input.mode === "SELECTOR" && !input.selector?.trim()) {
     return { ok: false, error: dict.errors.selectorRequired };
   }

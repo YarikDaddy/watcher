@@ -103,6 +103,18 @@ export async function createTracker(
       type: "TEXT_CHANGE" as const,
       intervalMinutes,
     };
+  } else if (mode === "CERT") {
+    // Срок SSL: threshold = дни до истечения, за которые предупреждать.
+    data = {
+      userId,
+      clientId,
+      name: name || hostnameOf(url!),
+      url,
+      mode,
+      threshold,
+      type: "TEXT_CHANGE" as const,
+      intervalMinutes,
+    };
   } else {
     data = { userId, clientId, name: name || hostnameOf(url!), url, mode, selector: selector!, type, intervalMinutes };
   }
@@ -206,7 +218,9 @@ export async function updateTracker(
       ? { ...base, assetCondition, threshold }
       : existing.mode === "PRICE"
         ? { ...base, url }
-        : { ...base, url, selector: selector!, type };
+        : existing.mode === "CERT"
+          ? { ...base, url, threshold }
+          : { ...base, url, selector: selector!, type };
 
   try {
     await prisma.tracker.update({ where: { id }, data });

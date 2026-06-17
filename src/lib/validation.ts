@@ -52,7 +52,7 @@ export function makeTrackerSchema(v: Val) {
       clientId: z.string().trim().optional(),
       // URL не нужен в режиме ASSET — проверяем его в superRefine.
       url: z.string().trim().optional(),
-      mode: z.enum(["PRICE", "SELECTOR", "ASSET"]).default("PRICE"),
+      mode: z.enum(["PRICE", "SELECTOR", "ASSET", "CERT"]).default("PRICE"),
       selector: z.string().trim().max(200).optional(),
       type: z.enum(["TEXT_CHANGE", "PRESENCE"]).default("TEXT_CHANGE"),
       asset: z.string().trim().max(50).optional(),
@@ -77,13 +77,20 @@ export function makeTrackerSchema(v: Val) {
         }
         return;
       }
-      // Для PRICE/SELECTOR обязателен корректный URL.
+      // Для PRICE/SELECTOR/CERT обязателен корректный URL.
       if (!data.url || !z.url().safeParse(data.url).success) {
         ctx.addIssue({ code: "custom", path: ["url"], message: v.urlInvalid });
       }
       // CSS-селектор обязателен только в продвинутом режиме.
       if (data.mode === "SELECTOR" && !data.selector) {
         ctx.addIssue({ code: "custom", path: ["selector"], message: v.selectorRequired });
+      }
+      // Для CERT порог — положительное число дней до истечения.
+      if (
+        data.mode === "CERT" &&
+        (data.threshold == null || Number.isNaN(data.threshold) || data.threshold <= 0)
+      ) {
+        ctx.addIssue({ code: "custom", path: ["threshold"], message: v.thresholdInvalid });
       }
     });
 }

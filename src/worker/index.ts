@@ -10,6 +10,7 @@ import {
   assetLabel,
   type AssetPriceResult,
 } from "../lib/assets";
+import { fetchCertInfo, evalCertAlert, certAlertMessage, hostnameFromUrl } from "../lib/cert";
 import { sendTelegramMessage } from "../lib/telegram";
 import { getDictForLocale, type Dict } from "../lib/i18n";
 import { createBot } from "./bot";
@@ -102,6 +103,73 @@ async function checkAsset(
   });
 }
 
+type CertTracker = {
+  id: string;
+  name: string;
+  url: string | null;
+  threshold: number | null;
+  lastValue: string | null;
+  user: { telegramChatId: string | null };
+};
+
+/** Проверка одного SSL-трекера: читает серт и алертит по дням до истечения. */
+async function checkCert(tracker: CertTracker, now: Date, nextCheckAt: Date, dict: Dict) {
+  const host = hostnameFromUrl(tracker.url);
+  if (!host || tracker.threshold == null) {
+    await prisma.tracker.update({
+      where: { id: tracker.id },
+      data: { status: "ERROR", lastError: dict.errors.urlInvalid, lastCheckedAt: now, nextCheckAt },
+    });
+    return;
+  }
+
+  const res = await fetchCertInfo(host);
+  if (!res.ok) {
+    await prisma.tracker.update({
+      where: { id: tracker.id },
+      data: {
+        status: "ERROR",
+        lastError: checkErrorMessage(res.error, dict.errors),
+        lastCheckedAt: now,
+        nextCheckAt,
+      },
+    });
+    return;
+  }
+
+  const daysLeft = res.daysLeft;
+  const parsedPrev = tracker.lastValue != null ? Number(tracker.lastValue) : NaN;
+  const prevDays = Number.isFinite(parsedPrev) ? parsedPrev : null;
+  const ev = evalCertAlert(tracker.threshold, prevDays, daysLeft);
+
+  await prisma.snapshot.create({ data: { trackerId: tracker.id, value: String(daysLeft) } });
+
+  if (ev.alert) {
+    const message = certAlertMessage(ev, dict.alerts);
+    await prisma.alert.create({
+      data: { trackerId: tracker.id, message, oldValue: tracker.lastValue, newValue: String(daysLeft) },
+    });
+    if (tracker.user.telegramChatId) {
+      await sendTelegramMessage(
+        tracker.user.telegramChatId,
+        `🔔 <b>${tracker.name}</b>\n${message}\n\n${tracker.url ?? ""}`
+      );
+    }
+  }
+
+  await prisma.tracker.update({
+    where: { id: tracker.id },
+    data: {
+      // expired → ошибочный (красный) статус; иначе зона алерта = CHANGED.
+      status: ev.expired ? "ERROR" : ev.alert ? "CHANGED" : "OK",
+      lastValue: String(daysLeft),
+      lastError: null,
+      lastCheckedAt: now,
+      nextCheckAt,
+    },
+  });
+}
+
 /** Один проход: берёт просроченные трекеры и проверяет их. */
 async function runDueChecks() {
   const now = new Date();
@@ -125,6 +193,12 @@ async function runDueChecks() {
     // Режим ASSET: цена из API + условие (порог/процент).
     if (tracker.mode === "ASSET") {
       await checkAsset(tracker, now, nextCheckAt, priceCache, dict);
+      continue;
+    }
+
+    // Режим CERT: срок действия SSL-сертификата.
+    if (tracker.mode === "CERT") {
+      await checkCert(tracker, now, nextCheckAt, dict);
       continue;
     }
 

@@ -9,7 +9,7 @@ import type { Dict } from "@/lib/i18n";
 export type TrackerView = {
   id: string;
   name: string;
-  mode: "PRICE" | "SELECTOR" | "ASSET";
+  mode: "PRICE" | "SELECTOR" | "ASSET" | "CERT";
   url: string | null;
   selector: string | null;
   type: "TEXT_CHANGE" | "PRESENCE";
@@ -81,6 +81,15 @@ export default function TrackerItem({
   const err = state?.errors;
 
   const unit = assetUnit(t.asset ?? "");
+
+  // Для CERT lastValue хранит дни до истечения (может быть отрицательным = истёк).
+  const certDays = t.mode === "CERT" && t.lastValue != null ? Number(t.lastValue) : NaN;
+  const certText = Number.isNaN(certDays)
+    ? ""
+    : certDays <= 0
+      ? d.certExpired
+      : `${d.certExpiresPrefix} ${certDays} ${d.certDaysShort}`;
+
   const statusClass = t.isActive ? STATUS_CLASS[t.status] ?? STATUS_CLASS.PENDING : "text-amber-600";
   const statusText = t.isActive
     ? d.statuses[t.status as keyof typeof d.statuses] ?? d.statuses.PENDING
@@ -115,6 +124,11 @@ export default function TrackerItem({
               </>
             ) : t.mode === "PRICE" ? (
               <>{d.priceLabel}</>
+            ) : t.mode === "CERT" ? (
+              <>
+                {d.certLabel}
+                {certText ? ` · ${certText}` : ""}
+              </>
             ) : (
               <code>{t.selector}</code>
             )}{" "}
@@ -179,8 +193,18 @@ export default function TrackerItem({
             </div>
           )}
 
-          {(t.mode === "PRICE" || t.mode === "SELECTOR") && (
+          {(t.mode === "PRICE" || t.mode === "SELECTOR" || t.mode === "CERT") && (
             <input name="url" defaultValue={t.url ?? ""} placeholder={form.urlPlaceholder} className={inputClass} />
+          )}
+          {t.mode === "CERT" && (
+            <input
+              name="threshold"
+              type="number"
+              min="1"
+              defaultValue={t.threshold ?? 14}
+              placeholder={form.certDaysPh}
+              className={inputClass}
+            />
           )}
           {t.mode === "SELECTOR" && (
             <>

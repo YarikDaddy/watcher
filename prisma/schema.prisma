@@ -20,6 +20,8 @@ model User {
   telegramLinkToken String?   @unique
   // Язык интерфейса/алертов (для сообщений воркера в Telegram)
   locale            String    @default("en")
+  // White-label: имя агентства на публичных статус-страницах (вместо «Watcher»)
+  brandName         String?
   trackers          Tracker[]
   clients           Client[]
   sessions          Session[]
@@ -29,12 +31,14 @@ model User {
 // Клиент агентства/фрилансера: группа трекеров по одному заказчику.
 // Удаление клиента НЕ удаляет трекеры — они становятся «без клиента» (SetNull).
 model Client {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String
-  trackers  Tracker[]
-  createdAt DateTime  @default(now())
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  // Публичная статус-страница: токен в URL /status/<shareToken>. null = выключена.
+  shareToken String?   @unique
+  trackers   Tracker[]
+  createdAt  DateTime  @default(now())
 
   @@index([userId])
 }
@@ -60,6 +64,7 @@ enum TrackerMode {
   PRICE    // цена определяется автоматически, селектор не нужен
   SELECTOR // продвинутый режим: пользователь задаёт свой CSS-селектор
   ASSET    // финансовый актив (крипта/металл/валюта) через API + условие
+  CERT     // срок действия SSL-сертификата (threshold = дни до истечения)
 }
 
 enum AssetCondition {

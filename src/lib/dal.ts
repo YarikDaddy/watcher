@@ -19,7 +19,7 @@ export const getUser = cache(async () => {
   const { userId } = await verifySession();
   return prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, telegramChatId: true, createdAt: true },
+    select: { id: true, email: true, telegramChatId: true, brandName: true, createdAt: true },
   });
 });
 
@@ -38,7 +38,34 @@ export const getClients = cache(async () => {
   return prisma.client.findMany({
     where: { userId },
     orderBy: { createdAt: "asc" },
-    select: { id: true, name: true },
+    select: { id: true, name: true, shareToken: true },
+  });
+});
+
+/**
+ * Публичная статус-страница по share-токену — БЕЗ сессии (доступна клиенту
+ * агентства по ссылке). Возвращает клиента, его трекеры и бренд владельца.
+ */
+export const getClientByShareToken = cache(async (token: string) => {
+  if (!token) return null;
+  return prisma.client.findUnique({
+    where: { shareToken: token },
+    select: {
+      name: true,
+      user: { select: { brandName: true } },
+      trackers: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          id: true,
+          name: true,
+          mode: true,
+          status: true,
+          lastValue: true,
+          isActive: true,
+          lastCheckedAt: true,
+        },
+      },
+    },
   });
 });
 

@@ -6,7 +6,7 @@ import { previewTracker, type PreviewResult } from "@/app/actions/preview";
 import { ASSETS } from "@/lib/assets";
 import type { Dict } from "@/lib/i18n";
 
-type Mode = "PRICE" | "ASSET" | "SELECTOR";
+type Mode = "PRICE" | "ASSET" | "SELECTOR" | "CERT";
 type Condition = "ABOVE" | "BELOW" | "PERCENT";
 type FormDict = Dict["form"];
 type ClientOption = { id: string; name: string };
@@ -38,6 +38,15 @@ function PreviewBadge({
 }) {
   if (!result.ok) {
     return <span className="text-sm text-red-500">✗ {result.error}</span>;
+  }
+  if (mode === "CERT") {
+    // Значение уже собрано словами на сервере («SSL истекает через N дн» / «истёк»).
+    const expired = result.value === dict.certExpired;
+    return (
+      <span className={`text-sm ${expired ? "text-red-500" : "text-green-600"}`}>
+        {expired ? "✗" : "✓"} {result.value}
+      </span>
+    );
   }
   if (!result.present) {
     return (
@@ -126,7 +135,13 @@ export default function AddTrackerForm({
   );
 
   const hint =
-    mode === "PRICE" ? dict.hintPrice : mode === "ASSET" ? dict.hintAsset : dict.hintSelector;
+    mode === "PRICE"
+      ? dict.hintPrice
+      : mode === "ASSET"
+        ? dict.hintAsset
+        : mode === "CERT"
+          ? dict.hintCert
+          : dict.hintSelector;
 
   return (
     <form
@@ -144,6 +159,7 @@ export default function AddTrackerForm({
         <div className="flex gap-2">
           {modeButton("PRICE", dict.modePrice)}
           {modeButton("ASSET", dict.modeAsset)}
+          {modeButton("CERT", dict.modeCert)}
           {modeButton("SELECTOR", dict.modeSelector)}
         </div>
         <p className="mt-1 text-xs text-gray-500">{hint}</p>
@@ -219,6 +235,21 @@ export default function AddTrackerForm({
                 className={inputClass}
               />
               <FieldError errors={state?.errors?.selector} />
+            </div>
+          )}
+
+          {mode === "CERT" && (
+            <div>
+              <label className="mb-1 block text-sm text-gray-500">{dict.certDaysLabel}</label>
+              <input
+                name="threshold"
+                type="number"
+                min="1"
+                defaultValue="14"
+                placeholder={dict.certDaysPh}
+                className={inputClass}
+              />
+              <FieldError errors={state?.errors?.threshold} />
             </div>
           )}
         </>
