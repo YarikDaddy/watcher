@@ -194,6 +194,61 @@ const en = {
     description:
       "Watcher monitors prices, stock, crypto and exchange rates and sends a Telegram alert the moment something changes.",
   },
+  // Сообщения валидации (zod) — server-side
+  val: {
+    urlInvalid: "Enter a valid URL (with http/https).",
+    selectorRequired: "Enter a CSS selector.",
+    assetRequired: "Pick an asset.",
+    conditionRequired: "Pick a condition.",
+    thresholdInvalid: "Enter a number greater than zero.",
+    intervalNumber: "Interval must be a number.",
+    intervalMin: (n: number) => `Minimum interval is ${n} minutes.`,
+    emailInvalid: "Enter a valid email.",
+    passwordMin: "At least 8 characters.",
+    passwordLetter: "Needs at least one letter.",
+    passwordDigit: "Needs at least one digit.",
+    passwordRequired: "Enter a password.",
+  },
+  // Сообщения рантайма/экшенов — server-side
+  errors: {
+    blocked: "The site blocks automated checks — it can’t be monitored",
+    notFound: "Page not found (404) — check the link",
+    rateLimit: "The site is rate-limiting requests (429) — try less often",
+    serverDown: "The site is unavailable right now (server error)",
+    loadFailed: (s: number) => `Couldn’t load the page (HTTP ${s})`,
+    timeout: "The site took too long to respond (timeout)",
+    dns: "Address not found — check the link",
+    cert: "The site has a certificate problem",
+    openFailed: "Couldn’t open the site — check the link",
+    unknown: "Unknown error",
+    assetNotFound: "Asset not found",
+    priceSourceDown: "Price source unavailable",
+    priceNotFound: "Couldn’t find a price — the site may load it via JavaScript",
+    selectorNotFound: "Selector matched no element on the page",
+    assetMisconfig: "Invalid asset configuration",
+    pickAsset: "Pick an asset.",
+    pickAssetFromList: "Pick an asset from the list.",
+    urlInvalid: "Enter a valid URL (with http/https).",
+    selectorRequired: "Enter a CSS selector.",
+    invalidData: "Invalid data.",
+    limitReached: (n: number) => `The free plan allows up to ${n} trackers.`,
+    createFailed: "Couldn’t create the tracker. Try again later.",
+    emailExists: "A user with this email already exists.",
+    signupFailed: "Couldn’t create the account. Try again later.",
+    invalidCredentials: "Wrong email or password.",
+    loginFailed: "Couldn’t log in. Try again later.",
+    botNotConfigured: "Bot is not configured. Contact the admin.",
+  },
+  // Тексты алертов в Telegram — по локали пользователя
+  alerts: {
+    textChanged: (prev: string, cur: string) => `Value changed: “${prev}” → “${cur}”`,
+    appeared: "Element appeared on the page",
+    disappeared: "Element disappeared from the page",
+    crossedAbove: (th: string, cur: string) => `Price rose above ${th} — now ${cur}`,
+    crossedBelow: (th: string, cur: string) => `Price fell below ${th} — now ${cur}`,
+    movedUp: (pct: string, from: string, to: string) => `rose ${pct}% (${from} → ${to})`,
+    movedDown: (pct: string, from: string, to: string) => `fell ${pct}% (${from} → ${to})`,
+  },
 };
 
 const ru: typeof en = {
@@ -386,6 +441,58 @@ const ru: typeof en = {
     description:
       "Watcher следит за ценами, наличием, криптой и курсами и присылает алерт в Telegram в ту же секунду, как что-то меняется.",
   },
+  val: {
+    urlInvalid: "Введите корректный URL (с http/https).",
+    selectorRequired: "Введите CSS-селектор.",
+    assetRequired: "Выберите актив.",
+    conditionRequired: "Выберите условие.",
+    thresholdInvalid: "Введите число больше нуля.",
+    intervalNumber: "Интервал должен быть числом.",
+    intervalMin: (n: number) => `Минимальный интервал — ${n} минут.`,
+    emailInvalid: "Введите корректный email.",
+    passwordMin: "Минимум 8 символов.",
+    passwordLetter: "Должна быть хотя бы одна буква.",
+    passwordDigit: "Должна быть хотя бы одна цифра.",
+    passwordRequired: "Введите пароль.",
+  },
+  errors: {
+    blocked: "Сайт блокирует автоматические проверки — такой сайт мониторить не получится",
+    notFound: "Страница не найдена (404) — проверьте ссылку",
+    rateLimit: "Сайт ограничил частоту запросов (429) — попробуйте реже",
+    serverDown: "Сайт сейчас недоступен (ошибка на стороне сайта)",
+    loadFailed: (s: number) => `Не удалось загрузить страницу (HTTP ${s})`,
+    timeout: "Сайт слишком долго не отвечает (таймаут)",
+    dns: "Адрес не найден — проверьте ссылку",
+    cert: "Проблема с сертификатом сайта",
+    openFailed: "Не удалось открыть сайт — проверьте ссылку",
+    unknown: "Неизвестная ошибка",
+    assetNotFound: "Актив не найден",
+    priceSourceDown: "Источник цен недоступен",
+    priceNotFound: "Цена не найдена — возможно, сайт подгружает её через JavaScript",
+    selectorNotFound: "Селектор не нашёл элемент на странице",
+    assetMisconfig: "Некорректная настройка актива",
+    pickAsset: "Выберите актив.",
+    pickAssetFromList: "Выберите актив из списка.",
+    urlInvalid: "Введите корректный URL (с http/https).",
+    selectorRequired: "Введите CSS-селектор.",
+    invalidData: "Некорректные данные.",
+    limitReached: (n: number) => `На свободном тарифе доступно до ${n} трекеров.`,
+    createFailed: "Не удалось создать трекер. Попробуйте позже.",
+    emailExists: "Пользователь с таким email уже существует.",
+    signupFailed: "Не удалось создать аккаунт. Попробуйте позже.",
+    invalidCredentials: "Неверный email или пароль.",
+    loginFailed: "Не удалось войти. Попробуйте позже.",
+    botNotConfigured: "Бот не настроен. Обратитесь к администратору.",
+  },
+  alerts: {
+    textChanged: (prev: string, cur: string) => `Значение изменилось: «${prev}» → «${cur}»`,
+    appeared: "Элемент появился на странице",
+    disappeared: "Элемент исчез со страницы",
+    crossedAbove: (th: string, cur: string) => `Цена поднялась выше ${th} — сейчас ${cur}`,
+    crossedBelow: (th: string, cur: string) => `Цена опустилась ниже ${th} — сейчас ${cur}`,
+    movedUp: (pct: string, from: string, to: string) => `вырос на ${pct}% (${from} → ${to})`,
+    movedDown: (pct: string, from: string, to: string) => `упал на ${pct}% (${from} → ${to})`,
+  },
 };
 
 export type Dict = typeof en;
@@ -394,6 +501,11 @@ const dictionaries: Record<Locale, Dict> = { en, ru };
 
 export function getDict(locale: Locale): Dict {
   return dictionaries[locale];
+}
+
+/** Словарь по произвольной строке локали (например из БД); по умолчанию en. */
+export function getDictForLocale(value?: string | null): Dict {
+  return value === "ru" ? dictionaries.ru : dictionaries.en;
 }
 
 /** Локаль из cookie, иначе по Accept-Language (ru → ru, иначе en). */

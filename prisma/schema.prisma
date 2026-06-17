@@ -18,6 +18,8 @@ model User {
   // Привязка Telegram: пользователь отправляет боту этот токен, бот сохраняет chatId
   telegramChatId    String?
   telegramLinkToken String?   @unique
+  // Язык интерфейса/алертов (для сообщений воркера в Telegram)
+  locale            String    @default("en")
   trackers          Tracker[]
   sessions          Session[]
   createdAt         DateTime  @default(now())

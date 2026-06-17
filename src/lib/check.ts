@@ -1,6 +1,8 @@
 import * as cheerio from "cheerio";
+import type { Dict } from "./i18n";
 
 type Loaded = ReturnType<typeof cheerio.load>;
+type Errors = Dict["errors"];
 
 /**
  * Что именно извлекать со страницы:
@@ -11,27 +13,36 @@ export type ExtractSpec =
   | { mode: "PRICE" }
   | { mode: "SELECTOR"; selector: string };
 
+// Ошибка как стабильный код; перевод — на краю (preview по локали запроса,
+// воркер по локали пользователя). "http:NNN" несёт HTTP-статус.
 export type CheckResult =
   | { ok: true; value: string; present: boolean }
   | { ok: false; error: string };
 
-/** Человеческое объяснение HTTP-ошибки вместо сухого кода. */
-function describeHttpError(status: number): string {
-  if (status === 401 || status === 403)
-    return "Сайт блокирует автоматические проверки — такой сайт мониторить не получится";
-  if (status === 404) return "Страница не найдена (404) — проверьте ссылку";
-  if (status === 429) return "Сайт ограничил частоту запросов (429) — попробуйте реже";
-  if (status >= 500) return "Сайт сейчас недоступен (ошибка на стороне сайта)";
-  return `Не удалось загрузить страницу (HTTP ${status})`;
+function httpErrorCode(status: number): string {
+  if (status === 401 || status === 403) return "blocked";
+  if (status === 404) return "notFound";
+  if (status === 429) return "rateLimit";
+  if (status >= 500) return "serverDown";
+  return `http:${status}`;
 }
 
-/** Человеческое объяснение сетевой ошибки. */
-function describeNetworkError(err: unknown): string {
-  if (!(err instanceof Error)) return "Неизвестная ошибка";
-  if (err.name === "AbortError") return "Сайт слишком долго не отвечает (таймаут)";
-  if (/ENOTFOUND|EAI_AGAIN/.test(err.message)) return "Адрес не найден — проверьте ссылку";
-  if (/certificate|SSL|TLS/i.test(err.message)) return "Проблема с сертификатом сайта";
-  return "Не удалось открыть сайт — проверьте ссылку";
+function networkErrorCode(err: unknown): string {
+  if (!(err instanceof Error)) return "unknown";
+  if (err.name === "AbortError") return "timeout";
+  if (/ENOTFOUND|EAI_AGAIN/.test(err.message)) return "dns";
+  if (/certificate|SSL|TLS/i.test(err.message)) return "cert";
+  return "openFailed";
+}
+
+/** Переводит код ошибки проверки в человеческое сообщение по словарю. */
+export function checkErrorMessage(code: string, errs: Errors): string {
+  if (code.startsWith("http:")) {
+    return errs.loadFailed(Number(code.slice(5)) || 0);
+  }
+  const key = code as keyof Errors;
+  const msg = errs[key];
+  return typeof msg === "string" ? msg : errs.unknown;
 }
 
 const CURRENCY_SYMBOL: Record<string, string> = {
@@ -177,7 +188,7 @@ export async function fetchValue(
     });
 
     if (!res.ok) {
-      return { ok: false, error: describeHttpError(res.status) };
+      return { ok: false, error: httpErrorCode(res.status) };
     }
 
     const html = await res.text();
@@ -186,16 +197,19 @@ export async function fetchValue(
 
     return { ok: true, value, present };
   } catch (err) {
-    return { ok: false, error: describeNetworkError(err) };
+    return { ok: false, error: networkErrorCode(err) };
   } finally {
     clearTimeout(timer);
   }
 }
 
-export type Comparison = {
-  changed: boolean;
-  message: string;
-};
+// Результат сравнения как тип события; текст алерта строится на краю (воркер)
+// по локали пользователя — функция остаётся чистой и тестируемой.
+export type Comparison =
+  | { changed: false }
+  | { changed: true; kind: "text"; prev: string; cur: string }
+  | { changed: true; kind: "appeared" }
+  | { changed: true; kind: "disappeared" };
 
 /**
  * Сравнивает новое значение с предыдущим в зависимости от типа трекера.
@@ -207,28 +221,27 @@ export function compare(
   current: { value: string; present: boolean }
 ): Comparison {
   if (type === "PRESENCE") {
+    if (previous === null) return { changed: false };
     const prevPresent = previous === "present";
-    if (previous === null) return { changed: false, message: "" };
     if (prevPresent !== current.present) {
-      return {
-        changed: true,
-        message: current.present
-          ? "Элемент появился на странице"
-          : "Элемент исчез со страницы",
-      };
+      return { changed: true, kind: current.present ? "appeared" : "disappeared" };
     }
-    return { changed: false, message: "" };
+    return { changed: false };
   }
 
   // TEXT_CHANGE
-  if (previous === null) return { changed: false, message: "" };
+  if (previous === null) return { changed: false };
   if (previous !== current.value) {
-    return {
-      changed: true,
-      message: `Значение изменилось: «${previous}» → «${current.value}»`,
-    };
+    return { changed: true, kind: "text", prev: previous, cur: current.value };
   }
-  return { changed: false, message: "" };
+  return { changed: false };
+}
+
+/** Текст алерта для Telegram по результату compare и словарю алертов. */
+export function comparisonMessage(cmp: Comparison, a: Dict["alerts"]): string {
+  if (!cmp.changed) return "";
+  if (cmp.kind === "text") return a.textChanged(cmp.prev, cmp.cur);
+  return cmp.kind === "appeared" ? a.appeared : a.disappeared;
 }
 
 /** Нормализованное значение для хранения как "последнее". */

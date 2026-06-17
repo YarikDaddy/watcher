@@ -5,13 +5,20 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { createSession, deleteSession } from "@/lib/session";
-import { SignupSchema, LoginSchema, type AuthFormState } from "@/lib/validation";
+import {
+  makeSignupSchema,
+  makeLoginSchema,
+  type AuthFormState,
+} from "@/lib/validation";
+import { getLocale, getDict } from "@/lib/i18n";
 
 export async function signup(
   _state: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
-  const parsed = SignupSchema.safeParse({
+  const locale = await getLocale();
+  const dict = getDict(locale);
+  const parsed = makeSignupSchema(dict.val).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -24,7 +31,8 @@ export async function signup(
 
   try {
     const passwordHash = await hashPassword(password);
-    const user = await prisma.user.create({ data: { email, passwordHash } });
+    // Запоминаем язык пользователя — чтобы алерты в Telegram приходили на нём.
+    const user = await prisma.user.create({ data: { email, passwordHash, locale } });
     await createSession(user.id);
   } catch (err) {
     // Уникальный индекс по email — пользователь уже есть
@@ -32,10 +40,10 @@ export async function signup(
       err instanceof Prisma.PrismaClientKnownRequestError &&
       err.code === "P2002"
     ) {
-      return { errors: { email: ["Пользователь с таким email уже существует."] } };
+      return { errors: { email: [dict.errors.emailExists] } };
     }
     console.error("[signup]", err);
-    return { message: "Не удалось создать аккаунт. Попробуйте позже." };
+    return { message: dict.errors.signupFailed };
   }
 
   redirect("/dashboard");
@@ -45,7 +53,8 @@ export async function login(
   _state: AuthFormState,
   formData: FormData
 ): Promise<AuthFormState> {
-  const parsed = LoginSchema.safeParse({
+  const dict = getDict(await getLocale());
+  const parsed = makeLoginSchema(dict.val).safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
   });
@@ -55,7 +64,7 @@ export async function login(
   }
 
   const { email, password } = parsed.data;
-  const genericError: AuthFormState = { message: "Неверный email или пароль." };
+  const genericError: AuthFormState = { message: dict.errors.invalidCredentials };
 
   try {
     const user = await prisma.user.findUnique({ where: { email } });
@@ -67,7 +76,7 @@ export async function login(
     await createSession(user.id);
   } catch (err) {
     console.error("[login]", err);
-    return { message: "Не удалось войти. Попробуйте позже." };
+    return { message: dict.errors.loginFailed };
   }
 
   redirect("/dashboard");

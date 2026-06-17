@@ -20,7 +20,7 @@ test("ABOVE: первая проверка, уже выше порога — а�
 test("BELOW: алерт при падении ниже порога", () => {
   const r = evalAssetAlert("BELOW", 60000, { lastPrice: 61000, baseline: null }, 59000);
   assert.equal(r.alert, true);
-  assert.match(r.message, /ниже/);
+  assert.equal(r.alert && r.kind, "below");
 });
 
 test("BELOW: остаётся выше — без алерта", () => {
@@ -37,7 +37,7 @@ test("PERCENT: первая проверка задаёт baseline, без ал�
 test("PERCENT: рост на >=5% — алерт и сброс baseline", () => {
   const r = evalAssetAlert("PERCENT", 5, { lastPrice: 100, baseline: 100 }, 106);
   assert.equal(r.alert, true);
-  assert.match(r.message, /вырос/);
+  assert.equal(r.alert && r.kind, "up");
   assert.equal(r.newBaseline, 106);
 });
 

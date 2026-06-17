@@ -4,11 +4,12 @@ import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
 import {
-  TrackerSchema,
+  makeTrackerSchema,
   FREE_TIER_TRACKER_LIMIT,
   type TrackerFormState,
 } from "@/lib/validation";
 import { isKnownAsset, assetLabel } from "@/lib/assets";
+import { getLocale, getDict } from "@/lib/i18n";
 
 /** Домен из URL для автоназвания трекера, когда название не задано. */
 function hostnameOf(url: string): string {
@@ -24,8 +25,9 @@ export async function createTracker(
   formData: FormData
 ): Promise<TrackerFormState> {
   const { userId } = await verifySession();
+  const dict = getDict(await getLocale());
 
-  const parsed = TrackerSchema.safeParse({
+  const parsed = makeTrackerSchema(dict.val).safeParse({
     name: formData.get("name") ?? undefined,
     url: formData.get("url") ?? undefined,
     mode: formData.get("mode") ?? undefined,
@@ -49,9 +51,7 @@ export async function createTracker(
   // Лимит свободного тарифа
   const count = await prisma.tracker.count({ where: { userId } });
   if (count >= FREE_TIER_TRACKER_LIMIT) {
-    return {
-      message: `На свободном тарифе доступно до ${FREE_TIER_TRACKER_LIMIT} трекеров.`,
-    };
+    return { message: dict.errors.limitReached(FREE_TIER_TRACKER_LIMIT) };
   }
 
   const { name, url, mode, selector, type, asset, assetCondition, threshold, intervalMinutes } =
@@ -60,7 +60,7 @@ export async function createTracker(
   let data;
   if (mode === "ASSET") {
     if (!asset || !isKnownAsset(asset)) {
-      return { errors: { asset: ["Выберите актив из списка."] } };
+      return { errors: { asset: [dict.errors.pickAssetFromList] } };
     }
     data = {
       userId,
@@ -91,7 +91,7 @@ export async function createTracker(
     await prisma.tracker.create({ data });
   } catch (err) {
     console.error("[createTracker]", err);
-    return { message: "Не удалось создать трекер. Попробуйте позже." };
+    return { message: dict.errors.createFailed };
   }
 
   revalidatePath("/dashboard");

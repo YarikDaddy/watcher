@@ -79,10 +79,10 @@ async function fetchCryptoPrice(symbol: string): Promise<AssetPriceResult> {
       // ниже вернём общую ошибку
     }
   }
-  return { ok: false, error: "Источник цен недоступен" };
+  return { ok: false, error: "priceSourceDown" };
 }
 
-/** Текущая цена актива из соответствующего провайдера. */
+/** Текущая цена актива из соответствующего провайдера. Ошибка — код словаря. */
 export async function fetchAssetPrice(asset: string): Promise<AssetPriceResult> {
   const [provider, symbol] = asset.split(":");
   try {
@@ -93,7 +93,7 @@ export async function fetchAssetPrice(asset: string): Promise<AssetPriceResult> 
       const data = (await fetchJson(
         `https://api.gold-api.com/price/${symbol}`
       )) as { price?: number };
-      if (typeof data.price !== "number") return { ok: false, error: "Цена недоступна" };
+      if (typeof data.price !== "number") return { ok: false, error: "assetNotFound" };
       return { ok: true, price: data.price };
     }
     if (provider === "fiat") {
@@ -101,27 +101,25 @@ export async function fetchAssetPrice(asset: string): Promise<AssetPriceResult> 
         rates?: Record<string, number>;
       };
       const price = data.rates?.[symbol];
-      if (typeof price !== "number") return { ok: false, error: "Курс недоступен" };
+      if (typeof price !== "number") return { ok: false, error: "assetNotFound" };
       return { ok: true, price };
     }
-    return { ok: false, error: "Неизвестный актив" };
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : "Ошибка";
-    return { ok: false, error: `Источник недоступен (${msg})` };
+    return { ok: false, error: "assetNotFound" };
+  } catch {
+    return { ok: false, error: "priceSourceDown" };
   }
 }
 
-export type AssetAlert = {
-  alert: boolean;
-  message: string;
-  newBaseline: number | null;
-};
+// Результат как тип события; текст алерта строится на краю (воркер) по локали
+// пользователя. Числа возвращаем сырыми — форматирование/единицы на краю.
+export type AssetAlert =
+  | { alert: false; newBaseline: number | null }
+  | { alert: true; kind: "above" | "below"; threshold: number; current: number; newBaseline: number | null }
+  | { alert: true; kind: "up" | "down"; pct: number; from: number; to: number; newBaseline: number | null };
 
 function conditionMet(condition: AssetCondition, price: number, threshold: number): boolean {
   return condition === "ABOVE" ? price >= threshold : price <= threshold;
 }
-
-const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
 
 /**
  * Чистая логика алерта по активу.
@@ -133,35 +131,57 @@ export function evalAssetAlert(
   condition: AssetCondition,
   threshold: number,
   prev: { lastPrice: number | null; baseline: number | null },
-  current: number,
-  unit = ""
+  current: number
 ): AssetAlert {
-  const u = unit ? ` ${unit}` : "";
-
   if (condition === "PERCENT") {
     const baseline = prev.baseline ?? current;
     const pct = baseline === 0 ? 0 : ((current - baseline) / baseline) * 100;
     if (Math.abs(pct) >= threshold) {
-      const dir = pct > 0 ? "вырос" : "упал";
       return {
         alert: true,
-        message: `${dir} на ${Math.abs(pct).toFixed(2)}% (${fmt(baseline)}${u} → ${fmt(current)}${u})`,
+        kind: pct > 0 ? "up" : "down",
+        pct: Math.abs(pct),
+        from: baseline,
+        to: current,
         newBaseline: current,
       };
     }
-    return { alert: false, message: "", newBaseline: baseline };
+    return { alert: false, newBaseline: baseline };
   }
 
   const prevMet =
     prev.lastPrice == null ? false : conditionMet(condition, prev.lastPrice, threshold);
   const curMet = conditionMet(condition, current, threshold);
   if (!prevMet && curMet) {
-    const word = condition === "ABOVE" ? "поднялась выше" : "опустилась ниже";
     return {
       alert: true,
-      message: `Цена ${word} ${fmt(threshold)}${u} — сейчас ${fmt(current)}${u}`,
+      kind: condition === "ABOVE" ? "above" : "below",
+      threshold,
+      current,
       newBaseline: null,
     };
   }
-  return { alert: false, message: "", newBaseline: null };
+  return { alert: false, newBaseline: null };
+}
+
+const fmtNumber = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+
+/** Текст алерта по активу для Telegram (по локали пользователя). */
+export function assetAlertMessage(
+  res: Extract<AssetAlert, { alert: true }>,
+  unit: string,
+  a: { crossedAbove: (t: string, c: string) => string; crossedBelow: (t: string, c: string) => string; movedUp: (p: string, f: string, t: string) => string; movedDown: (p: string, f: string, t: string) => string }
+): string {
+  const u = unit ? ` ${unit}` : "";
+  const f = (n: number) => `${fmtNumber(n)}${u}`;
+  switch (res.kind) {
+    case "above":
+      return a.crossedAbove(f(res.threshold), f(res.current));
+    case "below":
+      return a.crossedBelow(f(res.threshold), f(res.current));
+    case "up":
+      return a.movedUp(res.pct.toFixed(2), f(res.from), f(res.to));
+    case "down":
+      return a.movedDown(res.pct.toFixed(2), f(res.from), f(res.to));
+  }
 }

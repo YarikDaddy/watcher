@@ -1,15 +1,17 @@
 import "dotenv/config";
 import cron from "node-cron";
 import { prisma } from "../lib/prisma";
-import { fetchValue, compare, toStoredValue } from "../lib/check";
+import { fetchValue, compare, comparisonMessage, toStoredValue, checkErrorMessage } from "../lib/check";
 import {
   fetchAssetPrice,
   evalAssetAlert,
+  assetAlertMessage,
   assetUnit,
   assetLabel,
   type AssetPriceResult,
 } from "../lib/assets";
 import { sendTelegramMessage } from "../lib/telegram";
+import { getDictForLocale, type Dict } from "../lib/i18n";
 import { createBot } from "./bot";
 
 const BATCH_SIZE = 20;
@@ -30,12 +32,13 @@ async function checkAsset(
   tracker: AssetTracker,
   now: Date,
   nextCheckAt: Date,
-  priceCache: Map<string, AssetPriceResult>
+  priceCache: Map<string, AssetPriceResult>,
+  dict: Dict
 ) {
   if (!tracker.asset || !tracker.assetCondition || tracker.threshold == null) {
     await prisma.tracker.update({
       where: { id: tracker.id },
-      data: { status: "ERROR", lastError: "Некорректная настройка актива", lastCheckedAt: now, nextCheckAt },
+      data: { status: "ERROR", lastError: dict.errors.assetMisconfig, lastCheckedAt: now, nextCheckAt },
     });
     return;
   }
@@ -49,7 +52,12 @@ async function checkAsset(
   if (!res.ok) {
     await prisma.tracker.update({
       where: { id: tracker.id },
-      data: { status: "ERROR", lastError: res.error, lastCheckedAt: now, nextCheckAt },
+      data: {
+        status: "ERROR",
+        lastError: checkErrorMessage(res.error, dict.errors),
+        lastCheckedAt: now,
+        nextCheckAt,
+      },
     });
     return;
   }
@@ -58,17 +66,17 @@ async function checkAsset(
   const parsedPrev = tracker.lastValue != null ? Number(tracker.lastValue) : NaN;
   const lastPrice = Number.isFinite(parsedPrev) ? parsedPrev : null;
 
-  const { alert, message, newBaseline } = evalAssetAlert(
+  const ev = evalAssetAlert(
     tracker.assetCondition,
     tracker.threshold,
     { lastPrice, baseline: tracker.baselinePrice },
-    current,
-    assetUnit(tracker.asset)
+    current
   );
 
   await prisma.snapshot.create({ data: { trackerId: tracker.id, value: String(current) } });
 
-  if (alert) {
+  if (ev.alert) {
+    const message = assetAlertMessage(ev, assetUnit(tracker.asset), dict.alerts);
     await prisma.alert.create({
       data: { trackerId: tracker.id, message, oldValue: tracker.lastValue, newValue: String(current) },
     });
@@ -83,10 +91,10 @@ async function checkAsset(
   await prisma.tracker.update({
     where: { id: tracker.id },
     data: {
-      status: alert ? "CHANGED" : "OK",
+      status: ev.alert ? "CHANGED" : "OK",
       lastValue: String(current),
       // baseline нужен только для PERCENT; для порогов держим null.
-      baselinePrice: tracker.assetCondition === "PERCENT" ? newBaseline : null,
+      baselinePrice: tracker.assetCondition === "PERCENT" ? ev.newBaseline : null,
       lastError: null,
       lastCheckedAt: now,
       nextCheckAt,
@@ -111,10 +119,12 @@ async function runDueChecks() {
 
   for (const tracker of due) {
     const nextCheckAt = new Date(Date.now() + tracker.intervalMinutes * 60_000);
+    // Сообщения (алерты в Telegram, ошибки) — на языке пользователя.
+    const dict = getDictForLocale(tracker.user.locale);
 
     // Режим ASSET: цена из API + условие (порог/процент).
     if (tracker.mode === "ASSET") {
-      await checkAsset(tracker, now, nextCheckAt, priceCache);
+      await checkAsset(tracker, now, nextCheckAt, priceCache, dict);
       continue;
     }
 
@@ -127,7 +137,12 @@ async function runDueChecks() {
     if (!result.ok) {
       await prisma.tracker.update({
         where: { id: tracker.id },
-        data: { status: "ERROR", lastError: result.error, lastCheckedAt: now, nextCheckAt },
+        data: {
+          status: "ERROR",
+          lastError: checkErrorMessage(result.error, dict.errors),
+          lastCheckedAt: now,
+          nextCheckAt,
+        },
       });
       continue;
     }
@@ -141,9 +156,7 @@ async function runDueChecks() {
         data: {
           status: "ERROR",
           lastError:
-            tracker.mode === "PRICE"
-              ? "Цена не найдена — возможно, сайт подгружает её через JavaScript"
-              : "Селектор не нашёл элемент на странице",
+            tracker.mode === "PRICE" ? dict.errors.priceNotFound : dict.errors.selectorNotFound,
           lastCheckedAt: now,
           nextCheckAt,
         },
@@ -157,19 +170,15 @@ async function runDueChecks() {
     await prisma.snapshot.create({ data: { trackerId: tracker.id, value: stored } });
 
     if (cmp.changed) {
+      const message = comparisonMessage(cmp, dict.alerts);
       await prisma.alert.create({
-        data: {
-          trackerId: tracker.id,
-          message: cmp.message,
-          oldValue: tracker.lastValue,
-          newValue: stored,
-        },
+        data: { trackerId: tracker.id, message, oldValue: tracker.lastValue, newValue: stored },
       });
 
       if (tracker.user.telegramChatId) {
         await sendTelegramMessage(
           tracker.user.telegramChatId,
-          `🔔 <b>${tracker.name}</b>\n${cmp.message}\n\n${tracker.url}`
+          `🔔 <b>${tracker.name}</b>\n${message}\n\n${tracker.url ?? ""}`
         );
       }
     }

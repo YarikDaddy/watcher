@@ -1,8 +1,9 @@
 "use server";
 
-import { fetchValue } from "@/lib/check";
+import { fetchValue, checkErrorMessage } from "@/lib/check";
 import { fetchAssetPrice, isKnownAsset, assetUnit } from "@/lib/assets";
 import { verifySession } from "@/lib/dal";
+import { getLocale, getDict, type Dict } from "@/lib/i18n";
 
 export type PreviewResult =
   | { ok: true; present: boolean; value: string }
@@ -24,6 +25,12 @@ const isHttpUrl = (u: string) => {
   }
 };
 
+/** Переводит код ошибки актива в сообщение словаря. */
+function assetErrorMessage(code: string, errs: Dict["errors"]): string {
+  const msg = errs[code as keyof Dict["errors"]];
+  return typeof msg === "string" ? msg : errs.unknown;
+}
+
 /**
  * Мгновенная проверка: показывает, что найдётся, ещё до создания трекера —
  * цену актива (ASSET), цену со страницы (PRICE) или значение селектора.
@@ -31,23 +38,24 @@ const isHttpUrl = (u: string) => {
  */
 export async function previewTracker(input: PreviewInput): Promise<PreviewResult> {
   await verifySession();
+  const dict = getDict(await getLocale());
 
   if (input.mode === "ASSET") {
     if (!input.asset || !isKnownAsset(input.asset)) {
-      return { ok: false, error: "Выберите актив." };
+      return { ok: false, error: dict.errors.pickAsset };
     }
     const res = await fetchAssetPrice(input.asset);
-    if (!res.ok) return { ok: false, error: res.error };
+    if (!res.ok) return { ok: false, error: assetErrorMessage(res.error, dict.errors) };
     const unit = assetUnit(input.asset);
     return { ok: true, present: true, value: `${res.price}${unit ? ` ${unit}` : ""}` };
   }
 
   const url = (input.url ?? "").trim();
   if (!isHttpUrl(url)) {
-    return { ok: false, error: "Введите корректный URL (с http/https)." };
+    return { ok: false, error: dict.errors.urlInvalid };
   }
   if (input.mode === "SELECTOR" && !input.selector?.trim()) {
-    return { ok: false, error: "Введите CSS-селектор." };
+    return { ok: false, error: dict.errors.selectorRequired };
   }
 
   const spec =
@@ -56,6 +64,6 @@ export async function previewTracker(input: PreviewInput): Promise<PreviewResult
       : ({ mode: "SELECTOR", selector: input.selector!.trim() } as const);
 
   const res = await fetchValue(url, spec);
-  if (!res.ok) return { ok: false, error: res.error };
+  if (!res.ok) return { ok: false, error: checkErrorMessage(res.error, dict.errors) };
   return { ok: true, present: res.present, value: res.value };
 }

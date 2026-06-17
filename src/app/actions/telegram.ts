@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { verifySession } from "@/lib/dal";
+import { getLocale, getDict } from "@/lib/i18n";
 
 export type TelegramLinkState = { deepLink: string } | { message: string };
 
@@ -16,7 +17,8 @@ export async function generateTelegramLink(): Promise<TelegramLinkState> {
 
   const username = process.env.TELEGRAM_BOT_USERNAME;
   if (!username) {
-    return { message: "Бот не настроен. Обратитесь к администратору." };
+    const dict = getDict(await getLocale());
+    return { message: dict.errors.botNotConfigured };
   }
 
   const token = randomBytes(16).toString("hex");

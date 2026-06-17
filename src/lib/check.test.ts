@@ -45,19 +45,20 @@ test("TEXT_CHANGE: одинаковое значение — нет измене
 test("TEXT_CHANGE: другое значение — изменение", () => {
   const r = compare("TEXT_CHANGE", "100 ₽", { value: "90 ₽", present: true });
   assert.equal(r.changed, true);
-  assert.match(r.message, /100 ₽.*90 ₽/);
+  assert.equal(r.changed && r.kind, "text");
+  assert.equal(r.changed && r.kind === "text" && r.prev, "100 ₽");
 });
 
 test("PRESENCE: появление элемента — изменение", () => {
   const r = compare("PRESENCE", "absent", { value: "", present: true });
   assert.equal(r.changed, true);
-  assert.match(r.message, /появил/);
+  assert.equal(r.changed && r.kind, "appeared");
 });
 
 test("PRESENCE: исчезновение элемента — изменение", () => {
   const r = compare("PRESENCE", "present", { value: "x", present: false });
   assert.equal(r.changed, true);
-  assert.match(r.message, /исчез/);
+  assert.equal(r.changed && r.kind, "disappeared");
 });
 
 test("PRESENCE: без изменений", () => {
