@@ -18,7 +18,7 @@ const en = {
     badge: "Website monitoring · Telegram alerts",
     heroTitle: "Know first when a website changes",
     heroSubtitle:
-      "Watcher tracks prices, stock, crypto and exchange rates — and pings your Telegram the moment something changes. No manual refreshing.",
+      "Watcher tracks prices, stock, crypto, exchange rates and SSL certificates — and pings your Telegram the moment something changes or a certificate is about to expire. No manual refreshing.",
     ctaPrimary: "Start free",
     ctaSecondary: "How it works",
     freeNote: "Free: up to 3 trackers · no card required",
@@ -45,10 +45,29 @@ const en = {
         text: "Bitcoin, Ethereum, gold, silver, USD/EUR. Get an alert when the price crosses your threshold or moves by X%.",
       },
       {
+        icon: "🔒",
+        title: "SSL certificate",
+        text: "Watcher checks your SSL certificate and warns you days before it expires — no more sites going down over a forgotten renewal.",
+      },
+      {
         icon: "⚙️",
         title: "Any element",
         text: "Advanced mode: pick any element with a CSS selector — a status, a job listing, a schedule, anything on the page.",
       },
+    ],
+    forAgenciesTitle: "Built for agencies & freelancers",
+    forAgenciesSubtitle:
+      "Managing many client sites? Group trackers by client and share a clean, branded status page — so your clients see you've got everything under control.",
+    forAgenciesPoints: [
+      "Group trackers by client",
+      "Public status page with your own brand",
+      "One Telegram bot for all your clients",
+    ],
+    statusPagePreview: "All systems operational",
+    statusPageRows: [
+      { name: "client-site.com", status: "Operational", tone: "ok" as const },
+      { name: "SSL certificate", status: "34 days left", tone: "ok" as const },
+      { name: "shop.client.com", status: "Attention", tone: "warn" as const },
     ],
     howTitle: "How it works",
     steps: [
@@ -99,7 +118,8 @@ const en = {
     tariffPrice: "$0",
     tariffFeatures: [
       "Up to 3 trackers",
-      "Price, crypto & rates, custom selector",
+      "Price, crypto, SSL & custom selector",
+      "Client status pages with your brand",
       "Telegram notifications",
       "Alert history",
     ],
@@ -345,7 +365,7 @@ const ru: typeof en = {
     badge: "Мониторинг сайтов · алерты в Telegram",
     heroTitle: "Узнавай об изменениях на сайтах первым",
     heroSubtitle:
-      "Watcher следит за ценами, наличием, криптой и курсами — и пишет в Telegram в ту же секунду, как что-то меняется. Без ручного F5.",
+      "Watcher следит за ценами, наличием, криптой, курсами и SSL-сертификатами — и пишет в Telegram в ту же секунду, как что-то меняется или истекает сертификат. Без ручного F5.",
     ctaPrimary: "Начать бесплатно",
     ctaSecondary: "Как это работает",
     freeNote: "Бесплатно: до 3 трекеров · без карты",
@@ -372,10 +392,29 @@ const ru: typeof en = {
         text: "Bitcoin, Ethereum, золото, серебро, USD/EUR. Алерт, когда цена пересекает порог или меняется на X%.",
       },
       {
+        icon: "🔒",
+        title: "SSL-сертификат",
+        text: "Watcher следит за SSL-сертификатом и предупреждает за несколько дней до истечения — больше никаких упавших сайтов из-за забытого продления.",
+      },
+      {
         icon: "⚙️",
         title: "Любой элемент",
         text: "Продвинутый режим: укажи любой элемент CSS-селектором — статус, вакансию, расписание, что угодно.",
       },
+    ],
+    forAgenciesTitle: "Для студий и фрилансеров",
+    forAgenciesSubtitle:
+      "Ведёте много клиентских сайтов? Группируйте трекеры по клиентам и делитесь аккуратной брендированной статус-страницей — чтобы клиент видел, что у вас всё под контролем.",
+    forAgenciesPoints: [
+      "Группировка трекеров по клиентам",
+      "Публичная статус-страница с вашим брендом",
+      "Один Telegram-бот на всех клиентов",
+    ],
+    statusPagePreview: "Все сервисы работают",
+    statusPageRows: [
+      { name: "client-site.com", status: "Работает", tone: "ok" as const },
+      { name: "SSL-сертификат", status: "осталось 34 дн", tone: "ok" as const },
+      { name: "shop.client.com", status: "Внимание", tone: "warn" as const },
     ],
     howTitle: "Как это работает",
     steps: [
@@ -426,7 +465,8 @@ const ru: typeof en = {
     tariffPrice: "0 ₽",
     tariffFeatures: [
       "До 3 трекеров",
-      "Цена, крипта и курсы, свой селектор",
+      "Цена, крипта, SSL и свой селектор",
+      "Статус-страницы для клиентов с вашим брендом",
       "Уведомления в Telegram",
       "История срабатываний",
     ],

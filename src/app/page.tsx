@@ -98,7 +98,7 @@ export default async function Home() {
       {/* Режимы / ценность */}
       <section className="mx-auto w-full max-w-5xl px-4 py-16">
         <h2 className="text-center text-2xl font-semibold">{t.modesTitle}</h2>
-        <div className="mt-10 grid gap-6 sm:grid-cols-3">
+        <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {t.modes.map((m) => (
             <div
               key={m.title}
@@ -109,6 +109,56 @@ export default async function Home() {
               <p className="mt-2 text-sm text-gray-500">{m.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Для агентств / white-label статус-страницы */}
+      <section className="mx-auto w-full max-w-5xl px-4 py-16">
+        <div className="rounded-3xl border border-gray-200 bg-gradient-to-br from-blue-50 to-white p-8 dark:border-gray-800 dark:from-blue-950/30 dark:to-gray-950 sm:p-12">
+          <div className="grid items-center gap-10 lg:grid-cols-2">
+            <div>
+              <h2 className="text-2xl font-semibold sm:text-3xl">{t.forAgenciesTitle}</h2>
+              <p className="mt-4 text-gray-500">{t.forAgenciesSubtitle}</p>
+              <ul className="mt-6 flex flex-col gap-3">
+                {t.forAgenciesPoints.map((p) => (
+                  <li key={p} className="flex items-start gap-2 text-sm">
+                    <span className="text-blue-600">✓</span>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Мокап статус-страницы клиента */}
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-800 dark:bg-gray-950">
+              <p className="text-xs font-medium uppercase tracking-wide text-gray-400">
+                {t.preview.dashboardTitle}
+              </p>
+              <div className="mt-3 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950/40">
+                <span className="h-2.5 w-2.5 rounded-full bg-green-500" />
+                <span className="text-sm font-medium">{t.statusPagePreview}</span>
+              </div>
+              <div className="mt-3 flex flex-col gap-2">
+                {t.statusPageRows.map((row) => {
+                  const tone =
+                    row.tone === "warn"
+                      ? { dot: "bg-amber-500", text: "text-amber-600" }
+                      : { dot: "bg-green-500", text: "text-green-600" };
+                  return (
+                    <div
+                      key={row.name}
+                      className="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm dark:border-gray-800"
+                    >
+                      <span className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${tone.dot}`} />
+                        {row.name}
+                      </span>
+                      <span className={tone.text}>{row.status}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
