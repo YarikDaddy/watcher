@@ -2,7 +2,13 @@ import "dotenv/config";
 import cron from "node-cron";
 import { prisma } from "../lib/prisma";
 import { fetchValue, compare, toStoredValue } from "../lib/check";
-import { fetchAssetPrice, evalAssetAlert, assetUnit, assetLabel } from "../lib/assets";
+import {
+  fetchAssetPrice,
+  evalAssetAlert,
+  assetUnit,
+  assetLabel,
+  type AssetPriceResult,
+} from "../lib/assets";
 import { sendTelegramMessage } from "../lib/telegram";
 import { createBot } from "./bot";
 
@@ -20,7 +26,12 @@ type AssetTracker = {
 };
 
 /** Проверка одного трекера-актива: тянет цену из API и применяет условие. */
-async function checkAsset(tracker: AssetTracker, now: Date, nextCheckAt: Date) {
+async function checkAsset(
+  tracker: AssetTracker,
+  now: Date,
+  nextCheckAt: Date,
+  priceCache: Map<string, AssetPriceResult>
+) {
   if (!tracker.asset || !tracker.assetCondition || tracker.threshold == null) {
     await prisma.tracker.update({
       where: { id: tracker.id },
@@ -29,7 +40,12 @@ async function checkAsset(tracker: AssetTracker, now: Date, nextCheckAt: Date) {
     return;
   }
 
-  const res = await fetchAssetPrice(tracker.asset);
+  // Один запрос на актив за проход: несколько трекеров на BTC = один вызов API.
+  let res = priceCache.get(tracker.asset);
+  if (!res) {
+    res = await fetchAssetPrice(tracker.asset);
+    priceCache.set(tracker.asset, res);
+  }
   if (!res.ok) {
     await prisma.tracker.update({
       where: { id: tracker.id },
@@ -91,12 +107,14 @@ async function runDueChecks() {
   if (due.length === 0) return;
   console.log(`[worker] проверяю ${due.length} трекер(ов)`);
 
+  const priceCache = new Map<string, AssetPriceResult>();
+
   for (const tracker of due) {
     const nextCheckAt = new Date(Date.now() + tracker.intervalMinutes * 60_000);
 
     // Режим ASSET: цена из API + условие (порог/процент).
     if (tracker.mode === "ASSET") {
-      await checkAsset(tracker, now, nextCheckAt);
+      await checkAsset(tracker, now, nextCheckAt, priceCache);
       continue;
     }
 

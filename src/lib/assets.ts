@@ -10,10 +10,10 @@ export type Asset = {
 };
 
 export const ASSETS: Asset[] = [
-  { value: "crypto:bitcoin", label: "Bitcoin (BTC)", unit: "$" },
-  { value: "crypto:ethereum", label: "Ethereum (ETH)", unit: "$" },
-  { value: "crypto:solana", label: "Solana (SOL)", unit: "$" },
-  { value: "crypto:dogecoin", label: "Dogecoin (DOGE)", unit: "$" },
+  { value: "crypto:BTC", label: "Bitcoin (BTC)", unit: "$" },
+  { value: "crypto:ETH", label: "Ethereum (ETH)", unit: "$" },
+  { value: "crypto:SOL", label: "Solana (SOL)", unit: "$" },
+  { value: "crypto:DOGE", label: "Dogecoin (DOGE)", unit: "$" },
   { value: "metal:XAU", label: "Золото (XAU, унция)", unit: "$" },
   { value: "metal:XAG", label: "Серебро (XAG, унция)", unit: "$" },
   { value: "fiat:EUR", label: "Доллар → Евро (USD/EUR)", unit: "" },
@@ -51,11 +51,13 @@ export async function fetchAssetPrice(asset: string): Promise<AssetPriceResult> 
   const [provider, symbol] = asset.split(":");
   try {
     if (provider === "crypto") {
+      // Coinbase: щедрые лимиты и стабильно отвечает из облака (в отличие
+      // от бесплатного CoinGecko, который отдаёт 429 с общих IP).
       const data = (await fetchJson(
-        `https://api.coingecko.com/api/v3/simple/price?ids=${symbol}&vs_currencies=usd`
-      )) as Record<string, { usd?: number }>;
-      const price = data[symbol]?.usd;
-      if (typeof price !== "number") return { ok: false, error: "Актив не найден" };
+        `https://api.coinbase.com/v2/prices/${symbol}-USD/spot`
+      )) as { data?: { amount?: string } };
+      const price = Number(data.data?.amount);
+      if (!Number.isFinite(price)) return { ok: false, error: "Актив не найден" };
       return { ok: true, price };
     }
     if (provider === "metal") {
