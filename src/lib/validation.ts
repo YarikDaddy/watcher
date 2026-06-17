@@ -21,8 +21,9 @@ export type AuthFormState =
     }
   | undefined;
 
-// Свободный тариф: минимальный интервал проверки — 60 минут
-export const MIN_INTERVAL_MINUTES = 60;
+// Минимальный интервал проверки. 1 минута — для демо/наблюдения «вживую»;
+// на проде под нагрузкой имеет смысл вернуть к 60 для свободного тарифа.
+export const MIN_INTERVAL_MINUTES = 1;
 export const FREE_TIER_TRACKER_LIMIT = 3;
 
 export const TrackerSchema = z

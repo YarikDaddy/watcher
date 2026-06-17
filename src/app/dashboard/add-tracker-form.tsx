@@ -188,6 +188,8 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
         <div className="flex-1">
           <label className="mb-1 block text-sm text-gray-500">Проверять раз в</label>
           <select name="intervalMinutes" defaultValue="60" className={inputClass}>
+            <option value="1">1 минута</option>
+            <option value="5">5 минут</option>
             <option value="60">1 час</option>
             <option value="180">3 часа</option>
             <option value="360">6 часов</option>
