@@ -15,6 +15,25 @@ export type CheckResult =
   | { ok: true; value: string; present: boolean }
   | { ok: false; error: string };
 
+/** Человеческое объяснение HTTP-ошибки вместо сухого кода. */
+function describeHttpError(status: number): string {
+  if (status === 401 || status === 403)
+    return "Сайт блокирует автоматические проверки — такой сайт мониторить не получится";
+  if (status === 404) return "Страница не найдена (404) — проверьте ссылку";
+  if (status === 429) return "Сайт ограничил частоту запросов (429) — попробуйте реже";
+  if (status >= 500) return "Сайт сейчас недоступен (ошибка на стороне сайта)";
+  return `Не удалось загрузить страницу (HTTP ${status})`;
+}
+
+/** Человеческое объяснение сетевой ошибки. */
+function describeNetworkError(err: unknown): string {
+  if (!(err instanceof Error)) return "Неизвестная ошибка";
+  if (err.name === "AbortError") return "Сайт слишком долго не отвечает (таймаут)";
+  if (/ENOTFOUND|EAI_AGAIN/.test(err.message)) return "Адрес не найден — проверьте ссылку";
+  if (/certificate|SSL|TLS/i.test(err.message)) return "Проблема с сертификатом сайта";
+  return "Не удалось открыть сайт — проверьте ссылку";
+}
+
 const CURRENCY_SYMBOL: Record<string, string> = {
   RUB: "₽",
   RUR: "₽",
@@ -158,7 +177,7 @@ export async function fetchValue(
     });
 
     if (!res.ok) {
-      return { ok: false, error: `HTTP ${res.status}` };
+      return { ok: false, error: describeHttpError(res.status) };
     }
 
     const html = await res.text();
@@ -167,13 +186,7 @@ export async function fetchValue(
 
     return { ok: true, value, present };
   } catch (err) {
-    const message =
-      err instanceof Error
-        ? err.name === "AbortError"
-          ? "Таймаут запроса"
-          : err.message
-        : "Неизвестная ошибка";
-    return { ok: false, error: message };
+    return { ok: false, error: describeNetworkError(err) };
   } finally {
     clearTimeout(timer);
   }

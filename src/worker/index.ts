@@ -46,7 +46,7 @@ async function runDueChecks() {
           status: "ERROR",
           lastError:
             tracker.mode === "PRICE"
-              ? "Не удалось найти цену на странице"
+              ? "Цена не найдена — возможно, сайт подгружает её через JavaScript"
               : "Селектор не нашёл элемент на странице",
           lastCheckedAt: now,
           nextCheckAt,

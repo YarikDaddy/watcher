@@ -57,7 +57,7 @@ export default function Home() {
           Узнавай об изменениях на сайтах первым
         </h1>
         <p className="mx-auto mt-5 max-w-xl text-lg text-gray-500">
-          Watcher следит за любой страницей и присылает мгновенный алерт в Telegram, когда
+          Watcher следит за нужной страницей и присылает мгновенный алерт в Telegram, когда
           меняется цена, появляется товар или выходит вакансия. Без ручного обновления F5.
         </p>
         <div className="mt-8 flex justify-center gap-3">
