@@ -3,8 +3,10 @@
 import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { createTracker } from "@/app/actions/trackers";
 import { previewTracker, type PreviewResult } from "@/app/actions/preview";
+import { ASSETS } from "@/lib/assets";
 
-type Mode = "PRICE" | "SELECTOR";
+type Mode = "PRICE" | "ASSET" | "SELECTOR";
+type Condition = "ABOVE" | "BELOW" | "PERCENT";
 
 const inputClass =
   "w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
@@ -23,7 +25,6 @@ function FieldError({ errors }: { errors?: string[] }) {
 }
 
 function PreviewBadge({ result, mode }: { result: PreviewResult; mode: Mode }) {
-  const noun = mode === "PRICE" ? "цена" : "значение";
   if (!result.ok) {
     return <span className="text-sm text-red-500">✗ {result.error}</span>;
   }
@@ -41,7 +42,7 @@ function PreviewBadge({ result, mode }: { result: PreviewResult; mode: Mode }) {
     result.value.length > 80 ? `${result.value.slice(0, 80)}…` : result.value;
   return (
     <span className="text-sm text-green-600">
-      ✓ Нашлась {noun}: «{value || "пусто"}»
+      ✓ {mode === "ASSET" ? "Сейчас" : "Нашлось"}: «{value || "пусто"}»
     </span>
   );
 }
@@ -51,16 +52,16 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
   const formRef = useRef<HTMLFormElement>(null);
   const urlRef = useRef<HTMLInputElement>(null);
   const selectorRef = useRef<HTMLInputElement>(null);
+  const assetRef = useRef<HTMLSelectElement>(null);
   const [mode, setMode] = useState<Mode>("PRICE");
+  const [condition, setCondition] = useState<Condition>("BELOW");
   const [preview, setPreview] = useState<PreviewResult | null>(null);
   const [previewPending, startPreview] = useTransition();
 
-  // Очищаем поля формы после успешного добавления
   useEffect(() => {
     if (state?.success) formRef.current?.reset();
   }, [state?.success]);
 
-  // Устаревший результат проверки больше не релевантен, если поля поменяли
   function clearPreview() {
     if (preview) setPreview(null);
   }
@@ -73,11 +74,12 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
   function handlePreview() {
     setPreview(null);
     startPreview(async () => {
-      const res = await previewTracker(
-        urlRef.current?.value ?? "",
+      const res = await previewTracker({
         mode,
-        selectorRef.current?.value ?? ""
-      );
+        url: urlRef.current?.value ?? "",
+        selector: selectorRef.current?.value ?? "",
+        asset: assetRef.current?.value ?? "",
+      });
       setPreview(res);
     });
   }
@@ -94,7 +96,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
     <button
       type="button"
       onClick={() => selectMode(value)}
-      className={`flex-1 rounded-md border px-3 py-2 text-sm transition ${
+      className={`flex-1 rounded-md border px-2 py-2 text-sm transition ${
         mode === value
           ? "border-blue-600 bg-blue-50 font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
           : "border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
@@ -103,6 +105,13 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
       {label}
     </button>
   );
+
+  const hint =
+    mode === "PRICE"
+      ? "Вставьте ссылку на товар — Watcher сам найдёт цену. Работает на обычных сайтах; крупные маркетплейсы (Ozon, DNS, WB) защищены от ботов."
+      : mode === "ASSET"
+        ? "Курс крипты, металла или валюты из биржевых API. Алерт по порогу цены или по изменению на %."
+        : "Для продвинутых: задайте CSS-селектор любого элемента на странице.";
 
   return (
     <form
@@ -118,38 +127,84 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
       <div>
         <label className="mb-1 block text-sm text-gray-500">Что отслеживать</label>
         <div className="flex gap-2">
-          {modeButton("PRICE", "💰 Цена — найду сам")}
-          {modeButton("SELECTOR", "⚙️ Свой селектор")}
+          {modeButton("PRICE", "💰 Цена")}
+          {modeButton("ASSET", "📈 Курс / крипта")}
+          {modeButton("SELECTOR", "⚙️ Селектор")}
         </div>
-        <p className="mt-1 text-xs text-gray-500">
-          {mode === "PRICE"
-            ? "Вставьте ссылку на товар — Watcher сам найдёт цену. Работает на обычных сайтах; крупные маркетплейсы (Ozon, DNS, WB) защищены от ботов."
-            : "Для продвинутых: задайте CSS-селектор любого элемента на странице."}
-        </p>
+        <p className="mt-1 text-xs text-gray-500">{hint}</p>
       </div>
 
-      <div>
-        <input
-          name="url"
-          ref={urlRef}
-          onChange={clearPreview}
-          placeholder="https://example.com/product"
-          className={inputClass}
-        />
-        <FieldError errors={state?.errors?.url} />
-      </div>
+      {mode === "ASSET" ? (
+        <>
+          <div>
+            <label className="mb-1 block text-sm text-gray-500">Актив</label>
+            <select name="asset" ref={assetRef} onChange={clearPreview} className={inputClass}>
+              {ASSETS.map((a) => (
+                <option key={a.value} value={a.value}>
+                  {a.label}
+                </option>
+              ))}
+            </select>
+            <FieldError errors={state?.errors?.asset} />
+          </div>
 
-      {mode === "SELECTOR" && (
-        <div>
-          <input
-            name="selector"
-            ref={selectorRef}
-            onChange={clearPreview}
-            placeholder="CSS-селектор (напр. .price, #stock)"
-            className={inputClass}
-          />
-          <FieldError errors={state?.errors?.selector} />
-        </div>
+          <div className="flex gap-3">
+            <div className="flex-1">
+              <label className="mb-1 block text-sm text-gray-500">Условие</label>
+              <select
+                name="assetCondition"
+                value={condition}
+                onChange={(e) => setCondition(e.target.value as Condition)}
+                className={inputClass}
+              >
+                <option value="BELOW">Цена ниже</option>
+                <option value="ABOVE">Цена выше</option>
+                <option value="PERCENT">Изменение на %</option>
+              </select>
+              <FieldError errors={state?.errors?.assetCondition} />
+            </div>
+
+            <div className="flex-1">
+              <label className="mb-1 block text-sm text-gray-500">
+                {condition === "PERCENT" ? "Процент, %" : "Порог цены"}
+              </label>
+              <input
+                name="threshold"
+                type="number"
+                step="any"
+                placeholder={condition === "PERCENT" ? "напр. 5" : "напр. 60000"}
+                className={inputClass}
+              />
+              <FieldError errors={state?.errors?.threshold} />
+            </div>
+          </div>
+        </>
+      ) : (
+        <>
+          <div>
+            <input
+              name="url"
+              ref={urlRef}
+              onChange={clearPreview}
+              placeholder="https://example.com/product"
+              className={inputClass}
+            />
+            <FieldError errors={state?.errors?.url} />
+          </div>
+
+          {mode === "SELECTOR" && (
+            <div>
+              <input
+                name="selector"
+                ref={selectorRef}
+                onChange={clearPreview}
+                placeholder="CSS-селектор (напр. .price, #stock)"
+                className={inputClass}
+              />
+              <FieldError errors={state?.errors?.selector} />
+            </div>
+          )}
+        </>
       )}
 
       <div className="flex flex-wrap items-center gap-2">
@@ -167,7 +222,7 @@ export default function AddTrackerForm({ disabled }: { disabled: boolean }) {
       <div>
         <input
           name="name"
-          placeholder="Название (необязательно — подставим домен)"
+          placeholder="Название (необязательно)"
           className={inputClass}
         />
         <FieldError errors={state?.errors?.name} />

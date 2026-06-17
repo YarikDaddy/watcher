@@ -2,10 +2,81 @@ import "dotenv/config";
 import cron from "node-cron";
 import { prisma } from "../lib/prisma";
 import { fetchValue, compare, toStoredValue } from "../lib/check";
+import { fetchAssetPrice, evalAssetAlert, assetUnit, assetLabel } from "../lib/assets";
 import { sendTelegramMessage } from "../lib/telegram";
 import { createBot } from "./bot";
 
 const BATCH_SIZE = 20;
+
+type AssetTracker = {
+  id: string;
+  name: string;
+  asset: string | null;
+  assetCondition: "ABOVE" | "BELOW" | "PERCENT" | null;
+  threshold: number | null;
+  baselinePrice: number | null;
+  lastValue: string | null;
+  user: { telegramChatId: string | null };
+};
+
+/** Проверка одного трекера-актива: тянет цену из API и применяет условие. */
+async function checkAsset(tracker: AssetTracker, now: Date, nextCheckAt: Date) {
+  if (!tracker.asset || !tracker.assetCondition || tracker.threshold == null) {
+    await prisma.tracker.update({
+      where: { id: tracker.id },
+      data: { status: "ERROR", lastError: "Некорректная настройка актива", lastCheckedAt: now, nextCheckAt },
+    });
+    return;
+  }
+
+  const res = await fetchAssetPrice(tracker.asset);
+  if (!res.ok) {
+    await prisma.tracker.update({
+      where: { id: tracker.id },
+      data: { status: "ERROR", lastError: res.error, lastCheckedAt: now, nextCheckAt },
+    });
+    return;
+  }
+
+  const current = res.price;
+  const parsedPrev = tracker.lastValue != null ? Number(tracker.lastValue) : NaN;
+  const lastPrice = Number.isFinite(parsedPrev) ? parsedPrev : null;
+
+  const { alert, message, newBaseline } = evalAssetAlert(
+    tracker.assetCondition,
+    tracker.threshold,
+    { lastPrice, baseline: tracker.baselinePrice },
+    current,
+    assetUnit(tracker.asset)
+  );
+
+  await prisma.snapshot.create({ data: { trackerId: tracker.id, value: String(current) } });
+
+  if (alert) {
+    await prisma.alert.create({
+      data: { trackerId: tracker.id, message, oldValue: tracker.lastValue, newValue: String(current) },
+    });
+    if (tracker.user.telegramChatId) {
+      await sendTelegramMessage(
+        tracker.user.telegramChatId,
+        `🔔 <b>${tracker.name}</b>\n${assetLabel(tracker.asset)}: ${message}`
+      );
+    }
+  }
+
+  await prisma.tracker.update({
+    where: { id: tracker.id },
+    data: {
+      status: alert ? "CHANGED" : "OK",
+      lastValue: String(current),
+      // baseline нужен только для PERCENT; для порогов держим null.
+      baselinePrice: tracker.assetCondition === "PERCENT" ? newBaseline : null,
+      lastError: null,
+      lastCheckedAt: now,
+      nextCheckAt,
+    },
+  });
+}
 
 /** Один проход: берёт просроченные трекеры и проверяет их. */
 async function runDueChecks() {
@@ -21,12 +92,19 @@ async function runDueChecks() {
   console.log(`[worker] проверяю ${due.length} трекер(ов)`);
 
   for (const tracker of due) {
+    const nextCheckAt = new Date(Date.now() + tracker.intervalMinutes * 60_000);
+
+    // Режим ASSET: цена из API + условие (порог/процент).
+    if (tracker.mode === "ASSET") {
+      await checkAsset(tracker, now, nextCheckAt);
+      continue;
+    }
+
     const spec =
       tracker.mode === "PRICE"
         ? ({ mode: "PRICE" } as const)
         : ({ mode: "SELECTOR", selector: tracker.selector ?? "" } as const);
-    const result = await fetchValue(tracker.url, spec);
-    const nextCheckAt = new Date(Date.now() + tracker.intervalMinutes * 60_000);
+    const result = await fetchValue(tracker.url ?? "", spec);
 
     if (!result.ok) {
       await prisma.tracker.update({

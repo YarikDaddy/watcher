@@ -2,8 +2,21 @@ import { getUser, getTrackers } from "@/lib/dal";
 import { logout } from "@/app/actions/auth";
 import { deleteTracker } from "@/app/actions/trackers";
 import { FREE_TIER_TRACKER_LIMIT } from "@/lib/validation";
+import { assetLabel, assetUnit } from "@/lib/assets";
 import AddTrackerForm from "./add-tracker-form";
 import TelegramLink from "./telegram-link";
+
+function assetConditionText(
+  condition: string | null,
+  threshold: number | null,
+  unit: string
+): string {
+  const u = unit ? ` ${unit}` : "";
+  if (condition === "ABOVE") return `выше ${threshold}${u}`;
+  if (condition === "BELOW") return `ниже ${threshold}${u}`;
+  if (condition === "PERCENT") return `±${threshold}%`;
+  return "";
+}
 
 const STATUS_LABEL: Record<string, { text: string; className: string }> = {
   PENDING: { text: "ожидает проверки", className: "text-gray-500" },
@@ -73,16 +86,31 @@ export default async function DashboardPage() {
                 >
                   <div className="min-w-0">
                     <p className="truncate font-medium">{t.name}</p>
-                    <a
-                      href={t.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="block truncate text-sm text-blue-600 hover:underline"
-                    >
-                      {t.url}
-                    </a>
+                    {t.mode === "ASSET" ? (
+                      <p className="truncate text-sm text-gray-500">
+                        📈 {assetLabel(t.asset ?? "")}
+                        {t.lastValue
+                          ? ` · сейчас ${t.lastValue}${assetUnit(t.asset ?? "") ? ` ${assetUnit(t.asset ?? "")}` : ""}`
+                          : ""}
+                      </p>
+                    ) : (
+                      t.url && (
+                        <a
+                          href={t.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block truncate text-sm text-blue-600 hover:underline"
+                        >
+                          {t.url}
+                        </a>
+                      )
+                    )}
                     <p className="mt-1 text-xs text-gray-500">
-                      {t.mode === "PRICE" ? (
+                      {t.mode === "ASSET" ? (
+                        <>
+                          алерт: {assetConditionText(t.assetCondition, t.threshold, assetUnit(t.asset ?? ""))}
+                        </>
+                      ) : t.mode === "PRICE" ? (
                         <>💰 цена</>
                       ) : (
                         <code>{t.selector}</code>

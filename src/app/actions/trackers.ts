@@ -8,6 +8,7 @@ import {
   FREE_TIER_TRACKER_LIMIT,
   type TrackerFormState,
 } from "@/lib/validation";
+import { isKnownAsset, assetLabel } from "@/lib/assets";
 
 /** Домен из URL для автоназвания трекера, когда название не задано. */
 function hostnameOf(url: string): string {
@@ -26,10 +27,13 @@ export async function createTracker(
 
   const parsed = TrackerSchema.safeParse({
     name: formData.get("name") ?? undefined,
-    url: formData.get("url"),
+    url: formData.get("url") ?? undefined,
     mode: formData.get("mode") ?? undefined,
     selector: formData.get("selector") ?? undefined,
     type: formData.get("type") ?? undefined,
+    asset: formData.get("asset") ?? undefined,
+    assetCondition: formData.get("assetCondition") ?? undefined,
+    threshold: formData.get("threshold") ?? undefined,
     intervalMinutes: formData.get("intervalMinutes"),
   });
 
@@ -50,14 +54,38 @@ export async function createTracker(
     };
   }
 
-  const { name, url, mode, selector, type, intervalMinutes } = parsed.data;
-  const finalName = name || hostnameOf(url);
+  const { name, url, mode, selector, type, asset, assetCondition, threshold, intervalMinutes } =
+    parsed.data;
 
-  // В режиме PRICE селектор не нужен, а сравнение всегда по тексту цены.
-  const data =
-    mode === "PRICE"
-      ? { userId, name: finalName, url, mode, selector: null, type: "TEXT_CHANGE" as const, intervalMinutes }
-      : { userId, name: finalName, url, mode, selector: selector!, type, intervalMinutes };
+  let data;
+  if (mode === "ASSET") {
+    if (!asset || !isKnownAsset(asset)) {
+      return { errors: { asset: ["Выберите актив из списка."] } };
+    }
+    data = {
+      userId,
+      name: name || assetLabel(asset),
+      mode,
+      asset,
+      assetCondition,
+      threshold,
+      type: "TEXT_CHANGE" as const,
+      intervalMinutes,
+    };
+  } else if (mode === "PRICE") {
+    // Цену определяем автоматически, сравнение всегда по тексту цены.
+    data = {
+      userId,
+      name: name || hostnameOf(url!),
+      url,
+      mode,
+      selector: null,
+      type: "TEXT_CHANGE" as const,
+      intervalMinutes,
+    };
+  } else {
+    data = { userId, name: name || hostnameOf(url!), url, mode, selector: selector!, type, intervalMinutes };
+  }
 
   try {
     await prisma.tracker.create({ data });

@@ -43,6 +43,13 @@ enum TrackerType {
 enum TrackerMode {
   PRICE    // цена определяется автоматически, селектор не нужен
   SELECTOR // продвинутый режим: пользователь задаёт свой CSS-селектор
+  ASSET    // финансовый актив (крипта/металл/валюта) через API + условие
+}
+
+enum AssetCondition {
+  ABOVE   // алерт, когда цена поднимается выше порога
+  BELOW   // алерт, когда цена опускается ниже порога
+  PERCENT // алерт, когда цена меняется на ±X% от точки отсчёта
 }
 
 enum TrackerStatus {
@@ -57,13 +64,19 @@ model Tracker {
   userId          String
   user            User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   name            String
-  url             String
+  // URL не нужен в режиме ASSET (цена берётся из API по символу актива).
+  url             String?
   // В режиме PRICE селектор не нужен (определяем цену автоматически),
   // поэтому поле необязательное. @default(SELECTOR) сохраняет поведение
   // существующих трекеров, созданных до появления режимов.
   mode            TrackerMode   @default(SELECTOR)
   selector        String?
   type            TrackerType   @default(TEXT_CHANGE)
+  // Поля режима ASSET:
+  asset           String?         // ключ актива вида "crypto:bitcoin", "metal:XAU", "fiat:RUB"
+  assetCondition  AssetCondition? // условие алерта
+  threshold       Float?          // порог (цена для ABOVE/BELOW; проценты для PERCENT)
+  baselinePrice   Float?          // точка отсчёта для PERCENT
   intervalMinutes Int           @default(60)
   isActive        Boolean       @default(true)
   status          TrackerStatus @default(PENDING)

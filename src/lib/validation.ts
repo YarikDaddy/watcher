@@ -28,12 +28,16 @@ export const FREE_TIER_TRACKER_LIMIT = 3;
 
 export const TrackerSchema = z
   .object({
-    // Название необязательное: если пусто — подставим домен в экшене.
+    // Название необязательное: если пусто — подставим домен/актив в экшене.
     name: z.string().trim().max(100).optional(),
-    url: z.url({ error: "Введите корректный URL (с http/https)." }).trim(),
-    mode: z.enum(["PRICE", "SELECTOR"]).default("PRICE"),
+    // URL не нужен в режиме ASSET — проверяем его в superRefine.
+    url: z.string().trim().optional(),
+    mode: z.enum(["PRICE", "SELECTOR", "ASSET"]).default("PRICE"),
     selector: z.string().trim().max(200).optional(),
     type: z.enum(["TEXT_CHANGE", "PRESENCE"]).default("TEXT_CHANGE"),
+    asset: z.string().trim().max(50).optional(),
+    assetCondition: z.enum(["ABOVE", "BELOW", "PERCENT"]).optional(),
+    threshold: z.coerce.number().optional(),
     intervalMinutes: z.coerce
       .number({ error: "Интервал должен быть числом." })
       .int()
@@ -43,13 +47,25 @@ export const TrackerSchema = z
       .max(1440),
   })
   .superRefine((data, ctx) => {
+    if (data.mode === "ASSET") {
+      if (!data.asset) {
+        ctx.addIssue({ code: "custom", path: ["asset"], message: "Выберите актив." });
+      }
+      if (!data.assetCondition) {
+        ctx.addIssue({ code: "custom", path: ["assetCondition"], message: "Выберите условие." });
+      }
+      if (data.threshold == null || Number.isNaN(data.threshold) || data.threshold <= 0) {
+        ctx.addIssue({ code: "custom", path: ["threshold"], message: "Введите число больше нуля." });
+      }
+      return;
+    }
+    // Для PRICE/SELECTOR обязателен корректный URL.
+    if (!data.url || !z.url().safeParse(data.url).success) {
+      ctx.addIssue({ code: "custom", path: ["url"], message: "Введите корректный URL (с http/https)." });
+    }
     // CSS-селектор обязателен только в продвинутом режиме.
     if (data.mode === "SELECTOR" && !data.selector) {
-      ctx.addIssue({
-        code: "custom",
-        path: ["selector"],
-        message: "Введите CSS-селектор.",
-      });
+      ctx.addIssue({ code: "custom", path: ["selector"], message: "Введите CSS-селектор." });
     }
   });
 
@@ -60,6 +76,9 @@ export type TrackerFormState =
         url?: string[];
         selector?: string[];
         type?: string[];
+        asset?: string[];
+        assetCondition?: string[];
+        threshold?: string[];
         intervalMinutes?: string[];
       };
       message?: string;
