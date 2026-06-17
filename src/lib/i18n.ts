@@ -132,12 +132,6 @@ const en = {
     dayShort: "a day",
     recentAlerts: "Recent alerts",
     noAlerts: "Nothing has triggered yet.",
-    timeAgo: {
-      justNow: "just now",
-      minutes: (n: number) => `${n}m ago`,
-      hours: (n: number) => `${n}h ago`,
-      days: (n: number) => `${n}d ago`,
-    },
     statuses: {
       PENDING: "awaiting check",
       OK: "no changes",
@@ -217,6 +211,14 @@ const en = {
     title: "Watcher — track website changes with Telegram alerts",
     description:
       "Watcher monitors prices, stock, crypto and exchange rates and sends a Telegram alert the moment something changes.",
+  },
+  // Относительное время — только server-side (содержит функции), НЕ передавать
+  // в клиентские компоненты.
+  timeAgo: {
+    justNow: "just now",
+    minutes: (n: number) => `${n}m ago`,
+    hours: (n: number) => `${n}h ago`,
+    days: (n: number) => `${n}d ago`,
   },
   // Сообщения валидации (zod) — server-side
   val: {
@@ -403,12 +405,6 @@ const ru: typeof en = {
     dayShort: "сутки",
     recentAlerts: "Последние срабатывания",
     noAlerts: "Пока ничего не сработало.",
-    timeAgo: {
-      justNow: "только что",
-      minutes: (n: number) => `${n} мин назад`,
-      hours: (n: number) => `${n} ч назад`,
-      days: (n: number) => `${n} дн назад`,
-    },
     statuses: {
       PENDING: "ожидает проверки",
       OK: "без изменений",
@@ -488,6 +484,12 @@ const ru: typeof en = {
     title: "Watcher — отслеживай изменения на сайтах с алертами в Telegram",
     description:
       "Watcher следит за ценами, наличием, криптой и курсами и присылает алерт в Telegram в ту же секунду, как что-то меняется.",
+  },
+  timeAgo: {
+    justNow: "только что",
+    minutes: (n: number) => `${n} мин назад`,
+    hours: (n: number) => `${n} ч назад`,
+    days: (n: number) => `${n} дн назад`,
   },
   val: {
     urlInvalid: "Введите корректный URL (с http/https).",

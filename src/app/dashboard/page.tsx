@@ -7,7 +7,7 @@ import TelegramLink from "./telegram-link";
 import TrackerItem from "./tracker-item";
 import LanguageSwitcher from "../language-switcher";
 
-function timeAgo(date: Date, t: Dict["dashboard"]["timeAgo"]): string {
+function timeAgo(date: Date, t: Dict["timeAgo"]): string {
   const sec = Math.floor((Date.now() - date.getTime()) / 1000);
   if (sec < 60) return t.justNow;
   const min = Math.floor(sec / 60);
@@ -119,7 +119,7 @@ export default async function DashboardPage() {
                     <p className="text-gray-500">{a.message}</p>
                   </div>
                   <span className="shrink-0 text-xs text-gray-400">
-                    {timeAgo(a.createdAt, d.timeAgo)}
+                    {timeAgo(a.createdAt, dict.timeAgo)}
                   </span>
                 </li>
               ))}
