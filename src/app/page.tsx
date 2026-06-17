@@ -64,6 +64,34 @@ export default async function Home() {
             </a>
           </div>
           <p className="mt-4 text-sm text-gray-400">{t.freeNote}</p>
+
+          {/* Превью продукта: мокап дашборда + Telegram-алерт */}
+          <div className="mx-auto mt-12 grid max-w-2xl gap-4 text-left sm:grid-cols-5">
+            <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:col-span-3">
+              <p className="mb-3 text-sm font-medium text-gray-500">{t.preview.dashboardTitle}</p>
+              <div className="rounded-xl border border-gray-200 p-3 dark:border-gray-800">
+                <p className="font-medium">{t.preview.trackerName}</p>
+                <p className="mt-1 text-xs text-gray-500">
+                  {t.preview.trackerMeta} ·{" "}
+                  <span className="text-green-600">{t.preview.statusOk}</span>
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col justify-center rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:col-span-2">
+              <div className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-sky-500 text-xs text-white">
+                  ✈
+                </span>
+                <span className="text-xs font-medium text-gray-500">{t.preview.botName}</span>
+              </div>
+              <div className="mt-2 rounded-2xl rounded-tl-sm bg-sky-50 p-3 text-sm dark:bg-sky-950/40">
+                {t.preview.alertText}
+                <span className="mt-1 block text-right text-[10px] text-gray-400">
+                  {t.preview.alertTime}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 

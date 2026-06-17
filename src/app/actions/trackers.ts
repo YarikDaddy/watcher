@@ -107,3 +107,91 @@ export async function deleteTracker(formData: FormData): Promise<void> {
   await prisma.tracker.deleteMany({ where: { id, userId } });
   revalidatePath("/dashboard");
 }
+
+/** Пауза/возобновление трекера (worker проверяет только isActive=true). */
+export async function toggleTracker(formData: FormData): Promise<void> {
+  const { userId } = await verifySession();
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return;
+
+  const t = await prisma.tracker.findFirst({ where: { id, userId }, select: { isActive: true } });
+  if (!t) return;
+
+  await prisma.tracker.update({
+    where: { id },
+    // При возобновлении — проверить скоро и со свежим статусом.
+    data: t.isActive
+      ? { isActive: false }
+      : { isActive: true, status: "PENDING", nextCheckAt: new Date() },
+  });
+  revalidatePath("/dashboard");
+}
+
+/** Редактирование трекера: меняет параметры (режим/актив не меняются). */
+export async function updateTracker(
+  _state: TrackerFormState,
+  formData: FormData
+): Promise<TrackerFormState> {
+  const { userId } = await verifySession();
+  const dict = getDict(await getLocale());
+
+  const id = formData.get("id");
+  if (typeof id !== "string" || !id) return { message: dict.errors.createFailed };
+
+  const existing = await prisma.tracker.findFirst({
+    where: { id, userId },
+    select: { mode: true, asset: true },
+  });
+  if (!existing) return { message: dict.errors.createFailed };
+
+  const parsed = makeTrackerSchema(dict.val).safeParse({
+    name: formData.get("name") ?? undefined,
+    url: formData.get("url") ?? undefined,
+    mode: existing.mode, // режим не редактируется
+    selector: formData.get("selector") ?? undefined,
+    type: formData.get("type") ?? undefined,
+    asset: existing.asset ?? undefined, // актив не редактируется
+    assetCondition: formData.get("assetCondition") ?? undefined,
+    threshold: formData.get("threshold") ?? undefined,
+    intervalMinutes: formData.get("intervalMinutes"),
+  });
+
+  if (!parsed.success) {
+    const fieldErrors: NonNullable<TrackerFormState>["errors"] = {};
+    for (const issue of parsed.error.issues) {
+      const key = issue.path[0] as keyof typeof fieldErrors;
+      if (key) (fieldErrors[key] ??= []).push(issue.message);
+    }
+    return { errors: fieldErrors };
+  }
+
+  const { name, url, selector, type, assetCondition, threshold, intervalMinutes } = parsed.data;
+  // Свежий старт: сбрасываем состояние, чтобы новые параметры применились без
+  // ложного алерта и с новой точкой отсчёта.
+  const base = {
+    intervalMinutes,
+    status: "PENDING" as const,
+    lastValue: null,
+    baselinePrice: null,
+    lastError: null,
+    nextCheckAt: new Date(),
+    ...(name ? { name } : {}),
+  };
+
+  const data =
+    existing.mode === "ASSET"
+      ? { ...base, assetCondition, threshold }
+      : existing.mode === "PRICE"
+        ? { ...base, url }
+        : { ...base, url, selector: selector!, type };
+
+  try {
+    await prisma.tracker.update({ where: { id }, data });
+  } catch (err) {
+    console.error("[updateTracker]", err);
+    return { message: dict.errors.createFailed };
+  }
+
+  revalidatePath("/dashboard");
+  return { success: true };
+}

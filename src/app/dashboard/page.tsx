@@ -1,38 +1,11 @@
 import { getUser, getTrackers, getRecentAlerts } from "@/lib/dal";
 import { logout } from "@/app/actions/auth";
-import { deleteTracker } from "@/app/actions/trackers";
 import { FREE_TIER_TRACKER_LIMIT } from "@/lib/validation";
-import { assetLabel, assetUnit } from "@/lib/assets";
 import { getLocale, getDict, type Dict } from "@/lib/i18n";
 import AddTrackerForm from "./add-tracker-form";
 import TelegramLink from "./telegram-link";
+import TrackerItem from "./tracker-item";
 import LanguageSwitcher from "../language-switcher";
-
-function assetConditionText(
-  condition: string | null,
-  threshold: number | null,
-  unit: string
-): string {
-  const u = unit ? ` ${unit}` : "";
-  if (condition === "ABOVE") return `${threshold}${u} ↑`;
-  if (condition === "BELOW") return `${threshold}${u} ↓`;
-  if (condition === "PERCENT") return `±${threshold}%`;
-  return "";
-}
-
-const STATUS_CLASS: Record<string, string> = {
-  PENDING: "text-gray-500",
-  OK: "text-green-600",
-  CHANGED: "text-blue-600 font-medium",
-  ERROR: "text-red-500",
-};
-
-function intervalLabel(minutes: number, d: Dict["dashboard"]): string {
-  if (minutes < 60) return `${minutes} ${d.minShort}`;
-  const hours = minutes / 60;
-  if (hours === 24) return d.dayShort;
-  return `${hours} ${d.hourShort}`;
-}
 
 function timeAgo(date: Date, t: Dict["dashboard"]["timeAgo"]): string {
   const sec = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -101,63 +74,28 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <ul className="flex flex-col gap-2">
-            {trackers.map((t) => {
-              const statusClass = STATUS_CLASS[t.status] ?? STATUS_CLASS.PENDING;
-              const statusText =
-                d.statuses[t.status as keyof typeof d.statuses] ?? d.statuses.PENDING;
-              return (
-                <li
-                  key={t.id}
-                  className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 p-3 dark:border-gray-800"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{t.name}</p>
-                    {t.mode === "ASSET" ? (
-                      <p className="truncate text-sm text-gray-500">
-                        📈 {assetLabel(t.asset ?? "")}
-                        {t.lastValue
-                          ? ` · ${d.nowPrefix} ${t.lastValue}${assetUnit(t.asset ?? "") ? ` ${assetUnit(t.asset ?? "")}` : ""}`
-                          : ""}
-                      </p>
-                    ) : (
-                      t.url && (
-                        <a
-                          href={t.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block truncate text-sm text-blue-600 hover:underline"
-                        >
-                          {t.url}
-                        </a>
-                      )
-                    )}
-                    <p className="mt-1 text-xs text-gray-500">
-                      {t.mode === "ASSET" ? (
-                        <>
-                          {d.alertPrefix}{" "}
-                          {assetConditionText(t.assetCondition, t.threshold, assetUnit(t.asset ?? ""))}
-                        </>
-                      ) : t.mode === "PRICE" ? (
-                        <>{d.priceLabel}</>
-                      ) : (
-                        <code>{t.selector}</code>
-                      )}{" "}
-                      · {d.every} {intervalLabel(t.intervalMinutes, d)} ·{" "}
-                      <span className={statusClass}>{statusText}</span>
-                    </p>
-                  </div>
-                  <form action={deleteTracker}>
-                    <input type="hidden" name="id" value={t.id} />
-                    <button
-                      type="submit"
-                      className="shrink-0 rounded-md border border-gray-300 px-2 py-1 text-sm text-red-500 hover:bg-red-50 dark:border-gray-700 dark:hover:bg-red-950/40"
-                    >
-                      {d.delete}
-                    </button>
-                  </form>
-                </li>
-              );
-            })}
+            {trackers.map((t) => (
+              <TrackerItem
+                key={t.id}
+                d={d}
+                form={dict.form}
+                t={{
+                  id: t.id,
+                  name: t.name,
+                  mode: t.mode,
+                  url: t.url,
+                  selector: t.selector,
+                  type: t.type,
+                  asset: t.asset,
+                  assetCondition: t.assetCondition,
+                  threshold: t.threshold,
+                  intervalMinutes: t.intervalMinutes,
+                  status: t.status,
+                  lastValue: t.lastValue,
+                  isActive: t.isActive,
+                }}
+              />
+            ))}
           </ul>
         )}
       </section>
