@@ -1,4 +1,4 @@
-import { getUser, getTrackers } from "@/lib/dal";
+import { getUser, getTrackers, getRecentAlerts } from "@/lib/dal";
 import { logout } from "@/app/actions/auth";
 import { deleteTracker } from "@/app/actions/trackers";
 import { FREE_TIER_TRACKER_LIMIT } from "@/lib/validation";
@@ -34,10 +34,21 @@ function intervalLabel(minutes: number, d: Dict["dashboard"]): string {
   return `${hours} ${d.hourShort}`;
 }
 
+function timeAgo(date: Date, t: Dict["dashboard"]["timeAgo"]): string {
+  const sec = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (sec < 60) return t.justNow;
+  const min = Math.floor(sec / 60);
+  if (min < 60) return t.minutes(min);
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return t.hours(hr);
+  return t.days(Math.floor(hr / 24));
+}
+
 export default async function DashboardPage() {
-  const [user, trackers, locale] = await Promise.all([
+  const [user, trackers, alerts, locale] = await Promise.all([
     getUser(),
     getTrackers(),
+    getRecentAlerts(),
     getLocale(),
   ]);
   const dict = getDict(locale);
@@ -150,6 +161,34 @@ export default async function DashboardPage() {
           </ul>
         )}
       </section>
+
+      {trackers.length > 0 && (
+        <section className="mb-8">
+          <h2 className="mb-3 text-lg font-medium">{d.recentAlerts}</h2>
+          {alerts.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-gray-300 p-4 text-sm text-gray-500 dark:border-gray-700">
+              {d.noAlerts}
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2">
+              {alerts.map((a) => (
+                <li
+                  key={a.id}
+                  className="flex items-start justify-between gap-4 rounded-lg border border-gray-200 p-3 text-sm dark:border-gray-800"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium">🔔 {a.tracker.name}</p>
+                    <p className="text-gray-500">{a.message}</p>
+                  </div>
+                  <span className="shrink-0 text-xs text-gray-400">
+                    {timeAgo(a.createdAt, d.timeAgo)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
 
       <AddTrackerForm disabled={atLimit} dict={dict.form} />
     </div>

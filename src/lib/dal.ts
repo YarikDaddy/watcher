@@ -31,3 +31,19 @@ export const getTrackers = cache(async () => {
     orderBy: { createdAt: "desc" },
   });
 });
+
+/** Последние срабатывания (алерты) по всем трекерам пользователя. */
+export const getRecentAlerts = cache(async () => {
+  const { userId } = await verifySession();
+  return prisma.alert.findMany({
+    where: { tracker: { userId } },
+    orderBy: { createdAt: "desc" },
+    take: 8,
+    select: {
+      id: true,
+      message: true,
+      createdAt: true,
+      tracker: { select: { name: true } },
+    },
+  });
+});

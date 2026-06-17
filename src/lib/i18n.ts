@@ -114,6 +114,14 @@ const en = {
     minShort: "min",
     hourShort: "h",
     dayShort: "a day",
+    recentAlerts: "Recent alerts",
+    noAlerts: "Nothing has triggered yet.",
+    timeAgo: {
+      justNow: "just now",
+      minutes: (n: number) => `${n}m ago`,
+      hours: (n: number) => `${n}h ago`,
+      days: (n: number) => `${n}d ago`,
+    },
     statuses: {
       PENDING: "awaiting check",
       OK: "no changes",
@@ -361,6 +369,14 @@ const ru: typeof en = {
     minShort: "мин",
     hourShort: "ч",
     dayShort: "сутки",
+    recentAlerts: "Последние срабатывания",
+    noAlerts: "Пока ничего не сработало.",
+    timeAgo: {
+      justNow: "только что",
+      minutes: (n: number) => `${n} мин назад`,
+      hours: (n: number) => `${n} ч назад`,
+      days: (n: number) => `${n} дн назад`,
+    },
     statuses: {
       PENDING: "ожидает проверки",
       OK: "без изменений",
