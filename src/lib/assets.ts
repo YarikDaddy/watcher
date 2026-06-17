@@ -46,19 +46,48 @@ async function fetchJson(url: string, timeoutMs = 12000): Promise<unknown> {
   }
 }
 
+const KRAKEN_PAIR: Record<string, string> = {
+  BTC: "XBTUSD",
+  ETH: "ETHUSD",
+  SOL: "SOLUSD",
+  DOGE: "XDGUSD",
+};
+
+/** Цена крипты: Coinbase, при сбое — Kraken. Оба бесплатны и без ключа. */
+async function fetchCryptoPrice(symbol: string): Promise<AssetPriceResult> {
+  // 1) Coinbase spot
+  try {
+    const data = (await fetchJson(
+      `https://api.coinbase.com/v2/prices/${symbol}-USD/spot`
+    )) as { data?: { amount?: string } };
+    const price = Number(data.data?.amount);
+    if (Number.isFinite(price)) return { ok: true, price };
+  } catch {
+    // переходим к резервному источнику
+  }
+  // 2) Kraken (резерв, если Coinbase недоступен/лимит)
+  const pair = KRAKEN_PAIR[symbol];
+  if (pair) {
+    try {
+      const data = (await fetchJson(
+        `https://api.kraken.com/0/public/Ticker?pair=${pair}`
+      )) as { result?: Record<string, { c?: string[] }> };
+      const first = data.result ? Object.values(data.result)[0] : undefined;
+      const price = Number(first?.c?.[0]);
+      if (Number.isFinite(price)) return { ok: true, price };
+    } catch {
+      // ниже вернём общую ошибку
+    }
+  }
+  return { ok: false, error: "Источник цен недоступен" };
+}
+
 /** Текущая цена актива из соответствующего провайдера. */
 export async function fetchAssetPrice(asset: string): Promise<AssetPriceResult> {
   const [provider, symbol] = asset.split(":");
   try {
     if (provider === "crypto") {
-      // Coinbase: щедрые лимиты и стабильно отвечает из облака (в отличие
-      // от бесплатного CoinGecko, который отдаёт 429 с общих IP).
-      const data = (await fetchJson(
-        `https://api.coinbase.com/v2/prices/${symbol}-USD/spot`
-      )) as { data?: { amount?: string } };
-      const price = Number(data.data?.amount);
-      if (!Number.isFinite(price)) return { ok: false, error: "Актив не найден" };
-      return { ok: true, price };
+      return await fetchCryptoPrice(symbol);
     }
     if (provider === "metal") {
       const data = (await fetchJson(
