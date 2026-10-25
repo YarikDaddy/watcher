@@ -2,6 +2,8 @@ import Link from "next/link";
 import { getLocale, getDict, type Dict } from "@/lib/i18n";
 import LanguageSwitcher from "./language-switcher";
 import SiteChecker from "./site-checker";
+import LiveDemo from "./live-demo";
+import Reveal from "./ui/reveal";
 
 const GITHUB_URL = "https://github.com/YarikDaddy/watcher";
 
@@ -106,9 +108,13 @@ function StatusMock({ t }: { t: L["statusMock"] }) {
                 {["99.98%", "100%", "99.91%"][i]} {t.uptime}
               </span>
             </div>
-            <div className="mt-2 flex h-6 gap-[2px]">
+            <div className="grow-bars mt-2 flex h-6 gap-[2px]">
               {mockBars(i + 1).map((c, j) => (
-                <span key={j} className={`flex-1 rounded-[2px] ${i === 1 ? "bg-up" : c}`} />
+                <span
+                  key={j}
+                  style={{ "--i": j } as React.CSSProperties}
+                  className={`flex-1 rounded-[2px] ${i === 1 ? "bg-up" : c}`}
+                />
               ))}
             </div>
           </div>
@@ -153,9 +159,13 @@ function CockpitMock({ t }: { t: L["cockpitMock"] }) {
               </span>
               <span className="text-sm font-semibold tabular-nums">{i ? "100%" : "99.98%"}</span>
             </div>
-            <div className="mt-2 flex h-4 gap-[2px]">
+            <div className="grow-bars mt-2 flex h-4 gap-[2px]">
               {mockBars(i + 4, 30).map((c, j) => (
-                <span key={j} className={`flex-1 rounded-[2px] ${i ? "bg-up" : c}`} />
+                <span
+                  key={j}
+                  style={{ "--i": j } as React.CSSProperties}
+                  className={`flex-1 rounded-[2px] ${i ? "bg-up" : c}`}
+                />
               ))}
             </div>
             <p className="mt-2 text-[11px] text-mute">
@@ -247,20 +257,38 @@ export default async function Home() {
           </div>
         </section>
 
+        {/* Живое демо: инцидент от падения до «снова работает» */}
+        <section className="overflow-hidden pb-24 pt-8 sm:pb-32">
+          <Reveal className="mx-auto max-w-3xl px-4 text-center">
+            <Eyebrow>{t.demoEyebrow}</Eyebrow>
+            <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{t.demoTitle}</h2>
+            <p className="mx-auto mt-5 max-w-2xl text-lg leading-relaxed text-mute">{t.demoSubtitle}</p>
+          </Reveal>
+          <Reveal className="mt-14 px-4" delay={120}>
+            <LiveDemo d={t.demo} />
+          </Reveal>
+        </section>
+
         {/* Три причины звонка клиента */}
         <section id="features" className="bg-sunken py-24 sm:py-32">
           <div className="mx-auto max-w-6xl px-4">
-            <h2 className="mx-auto max-w-3xl text-center text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">
-              {t.threeTitle}
-            </h2>
-            <p className="mx-auto mt-5 max-w-xl text-center text-lg text-mute">{t.threeSubtitle}</p>
+            <Reveal>
+              <h2 className="mx-auto max-w-3xl text-center text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">
+                {t.threeTitle}
+              </h2>
+              <p className="mx-auto mt-5 max-w-xl text-center text-lg text-mute">{t.threeSubtitle}</p>
+            </Reveal>
             <div className="mt-16 grid gap-4 md:grid-cols-3">
-              {t.three.map((item) => (
-                <div key={item.title} className="rounded-3xl bg-card p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              {t.three.map((item, i) => (
+                <Reveal
+                  key={item.title}
+                  delay={i * 110}
+                  className="rounded-3xl bg-card p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-500 hover:shadow-[0_20px_50px_rgba(0,0,0,0.08)]"
+                >
                   <span className="text-4xl">{item.icon}</span>
                   <h3 className="mt-6 text-2xl font-semibold tracking-tight">{item.title}</h3>
                   <p className="mt-3 leading-relaxed text-mute">{item.text}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -269,7 +297,7 @@ export default async function Home() {
         {/* Telegram — тёмная секция */}
         <section className="bg-black py-24 text-[#f5f5f7] sm:py-32">
           <div className="mx-auto grid max-w-6xl items-center gap-16 px-4 lg:grid-cols-2">
-            <div>
+            <Reveal>
               <Eyebrow dark>{t.telegramEyebrow}</Eyebrow>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{t.telegramTitle}</h2>
               <p className="mt-6 max-w-lg text-lg leading-relaxed text-[#a1a1a6]">{t.telegramSubtitle}</p>
@@ -280,15 +308,17 @@ export default async function Home() {
                   </Check>
                 ))}
               </ul>
-            </div>
-            <ChatMock t={t.chat} />
+            </Reveal>
+            <Reveal delay={150}>
+              <ChatMock t={t.chat} />
+            </Reveal>
           </div>
         </section>
 
         {/* Статус-страницы */}
         <section id="status" className="py-24 sm:py-32">
           <div className="mx-auto grid max-w-6xl items-center gap-16 px-4 lg:grid-cols-2">
-            <div className="lg:order-2">
+            <Reveal className="lg:order-2">
               <Eyebrow>{t.statusEyebrow}</Eyebrow>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{t.statusTitle}</h2>
               <p className="mt-6 max-w-lg text-lg leading-relaxed text-mute">{t.statusSubtitle}</p>
@@ -297,24 +327,24 @@ export default async function Home() {
                   <Check key={p}>{p}</Check>
                 ))}
               </ul>
-            </div>
-            <div className="lg:order-1">
+            </Reveal>
+            <Reveal className="lg:order-1" delay={120}>
               <StatusMock t={t.statusMock} />
-            </div>
+            </Reveal>
           </div>
         </section>
 
         {/* Пульт */}
         <section className="bg-sunken py-24 sm:py-32">
           <div className="mx-auto max-w-5xl px-4">
-            <div className="text-center">
+            <Reveal className="text-center">
               <Eyebrow>{t.cockpitEyebrow}</Eyebrow>
               <h2 className="mt-3 text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{t.cockpitTitle}</h2>
               <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-mute">{t.cockpitSubtitle}</p>
-            </div>
-            <div className="mx-auto mt-14 max-w-3xl">
+            </Reveal>
+            <Reveal className="mx-auto mt-14 max-w-3xl" delay={120}>
               <CockpitMock t={t.cockpitMock} />
-            </div>
+            </Reveal>
           </div>
         </section>
 
@@ -323,14 +353,14 @@ export default async function Home() {
           <div className="mx-auto max-w-6xl px-4">
             <h2 className="text-center text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{t.stepsTitle}</h2>
             <div className="mt-16 grid gap-10 md:grid-cols-3">
-              {t.steps.map((s) => (
-                <div key={s.n}>
+              {t.steps.map((s, i) => (
+                <Reveal key={s.n} delay={i * 120}>
                   <span className="flex h-11 w-11 items-center justify-center rounded-full bg-ink text-lg font-semibold text-canvas">
                     {s.n}
                   </span>
                   <h3 className="mt-5 text-xl font-semibold tracking-tight">{s.title}</h3>
                   <p className="mt-2 leading-relaxed text-mute">{s.text}</p>
-                </div>
+                </Reveal>
               ))}
             </div>
           </div>
@@ -357,7 +387,7 @@ export default async function Home() {
           <div className="mx-auto max-w-6xl px-4 text-center">
             <h2 className="text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">{t.pricingTitle}</h2>
             <p className="mx-auto mt-5 max-w-xl text-lg text-mute">{t.pricingSubtitle}</p>
-            <div className="mx-auto mt-14 max-w-md rounded-3xl bg-card p-8 text-left shadow-[0_20px_60px_rgba(0,0,0,0.08)] sm:p-10">
+            <Reveal className="mx-auto mt-14 max-w-md rounded-3xl bg-card p-8 text-left shadow-[0_20px_60px_rgba(0,0,0,0.08)] sm:p-10">
               <p className="text-sm font-semibold text-accent">{t.planName}</p>
               <p className="mt-2 flex items-baseline gap-1">
                 <span className="text-6xl font-semibold tracking-tight">{t.planPrice}</span>
@@ -374,7 +404,7 @@ export default async function Home() {
               >
                 {t.planCta}
               </Link>
-            </div>
+            </Reveal>
           </div>
         </section>
 
@@ -398,7 +428,7 @@ export default async function Home() {
 
         {/* Финальный призыв */}
         <section className="px-4 pb-24">
-          <div className="mx-auto max-w-6xl rounded-[2.5rem] bg-ink px-6 py-20 text-center text-canvas sm:py-28">
+          <Reveal className="mx-auto max-w-6xl rounded-[2.5rem] bg-ink px-6 py-20 text-center text-canvas sm:py-28">
             <h2 className="mx-auto max-w-3xl whitespace-pre-line text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">
               {t.finalTitle}
             </h2>
@@ -408,7 +438,7 @@ export default async function Home() {
             >
               {t.finalCta}
             </Link>
-          </div>
+          </Reveal>
         </section>
       </main>
 

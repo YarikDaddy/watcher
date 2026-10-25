@@ -134,3 +134,69 @@ body {
     scroll-behavior: auto;
   }
 }
+
+/* Смена языка: лёгкий блюр с задержкой (быстрые переключения не мигают)
+   и бегущая полоска загрузки. */
+@keyframes watcher-veil {
+  from {
+    backdrop-filter: blur(0);
+    background: transparent;
+  }
+  to {
+    backdrop-filter: blur(6px);
+    background: color-mix(in srgb, var(--canvas) 35%, transparent);
+  }
+}
+@keyframes watcher-bar {
+  0% {
+    transform: translateX(-100%) scaleX(0.3);
+  }
+  60% {
+    transform: translateX(10%) scaleX(0.7);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.3);
+  }
+}
+.locale-veil {
+  animation: watcher-veil 0.35s ease 0.12s both;
+}
+.locale-bar {
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  transform-origin: left;
+  animation: watcher-bar 0.9s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+/* Появление при прокрутке (см. ui/reveal.tsx). */
+[data-reveal="pending"] {
+  opacity: 0;
+  transform: translateY(28px) scale(0.985);
+}
+[data-reveal="in"] {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms),
+    transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--reveal-delay, 0ms);
+}
+/* Полосы аптайма «вырастают» волной, когда блок появился. */
+[data-reveal="pending"] .grow-bars > * {
+  transform: scaleY(0.15);
+  opacity: 0.3;
+}
+[data-reveal="in"] .grow-bars > * {
+  transform: none;
+  opacity: 1;
+  transform-origin: bottom;
+  transition:
+    transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1),
+    opacity 0.6s ease;
+  transition-delay: calc(var(--i, 0) * 14ms + 250ms);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal="pending"],
+  [data-reveal="pending"] .grow-bars > * {
+    opacity: 1;
+    transform: none;
+  }
+}

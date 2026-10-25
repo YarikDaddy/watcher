@@ -5,7 +5,8 @@ import { getLocale, getDict } from "@/lib/i18n";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
-  subsets: ["latin"],
+  // cyrillic — иначе русский текст рисуется системным шрифтом.
+  subsets: ["latin", "cyrillic"],
 });
 
 const geistMono = Geist_Mono({

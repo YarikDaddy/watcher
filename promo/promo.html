@@ -1,0 +1,244 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Watcher promo</title>
+<style>
+  @font-face { font-family: "Geist"; font-weight: 400; src: url(fonts/geist-400.ttf); }
+  @font-face { font-family: "Geist"; font-weight: 500; src: url(fonts/geist-500.ttf); }
+  @font-face { font-family: "Geist"; font-weight: 600; src: url(fonts/geist-600.ttf); }
+  @font-face { font-family: "Geist"; font-weight: 700; src: url(fonts/geist-700.ttf); }
+  @font-face { font-family: "Geist"; font-weight: 800; src: url(fonts/geist-800.ttf); }
+</style>
+<!--
+  Промо-ролик Watcher (1080×1350, 25 c). Все анимации — CSS на одной шкале
+  времени от 0. render.mjs ставит их на паузу и перематывает кадр за кадром.
+  Язык: promo.html?lang=en | ?lang=ru
+-->
+<style>
+  :root { --up: #30d158; --down: #ff453a; --warn: #ffb340; --accent: #2997ff; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; background: #000; }
+  body { font-family: "Geist", system-ui, sans-serif; color: #f5f5f7; -webkit-font-smoothing: antialiased; }
+  #stage { position: relative; width: 1080px; height: 1350px; overflow: hidden; background: #000; }
+  .scene { position: absolute; inset: 0; opacity: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+  .center { text-align: center; }
+
+  @keyframes show { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes hide { from { opacity: 1 } to { opacity: 0 } }
+  @keyframes rise { from { opacity: 0; transform: translateY(40px) } to { opacity: 1; transform: none } }
+  @keyframes pop { 0% { opacity: 0; transform: scale(.9) } 100% { opacity: 1; transform: none } }
+  @keyframes drop { 0% { opacity: 0; transform: translateY(-120px) scale(.96) } 100% { opacity: 1; transform: none } }
+  @keyframes grow { from { transform: scaleY(.1); opacity: .2 } to { transform: none; opacity: 1 } }
+  @keyframes blink { 0%, 49% { opacity: 1 } 50%, 100% { opacity: .15 } }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(255,69,58,.6) } 100% { box-shadow: 0 0 0 28px rgba(255,69,58,0) } }
+  @keyframes zoom { from { transform: scale(1.08) } to { transform: scale(1) } }
+  @keyframes toRed { to { background: var(--down) } }
+  @keyframes drift { from { transform: translateY(0) } to { transform: translateY(-30px) } }
+  .rise { animation: rise .9s cubic-bezier(.2,.8,.2,1) both; }
+  .pop { animation: pop .7s cubic-bezier(.2,.9,.2,1.1) both; }
+
+  /* S1 — ночь */
+  .clock { font-size: 260px; font-weight: 700; letter-spacing: -10px; font-variant-numeric: tabular-nums; }
+  .clock .colon { animation: blink 1s steps(1) infinite; }
+  .h1 { font-size: 76px; font-weight: 700; letter-spacing: -2.5px; line-height: 1.05; }
+  .cap { font-size: 46px; font-weight: 500; color: #a1a1a6; letter-spacing: -1px; }
+
+  /* S2/S3 — экран блокировки */
+  .lock { background: radial-gradient(120% 80% at 50% 0%, #1c2b4a 0%, #0a0f1d 55%, #000 100%); justify-content: flex-start; padding-top: 120px; }
+  .lock .date { font-size: 38px; font-weight: 500; color: rgba(255,255,255,.75); }
+  .lock .big { font-size: 210px; font-weight: 600; letter-spacing: -6px; line-height: 1; margin-top: 6px; }
+  .notifs { width: 920px; margin-top: 80px; display: flex; flex-direction: column; gap: 22px; }
+  .notif { animation: drop .8s cubic-bezier(.2,.9,.25,1.12) both; background: rgba(40,40,46,.78); border: 1px solid rgba(255,255,255,.08); border-radius: 44px; padding: 30px 34px; backdrop-filter: blur(30px); }
+  .notif .top { display: flex; align-items: center; gap: 16px; font-size: 27px; color: rgba(255,255,255,.6); font-weight: 500; }
+  .notif .app { width: 54px; height: 54px; border-radius: 14px; background: #2aabee; display: flex; align-items: center; justify-content: center; font-size: 30px; color: #fff; }
+  .notif .time { margin-left: auto; }
+  .notif .title { font-size: 36px; font-weight: 700; margin-top: 18px; }
+  .notif .text { font-size: 34px; color: rgba(255,255,255,.88); margin-top: 6px; }
+  .bottomcap { position: absolute; bottom: 120px; left: 0; right: 0; text-align: center; font-size: 64px; font-weight: 700; letter-spacing: -2px; }
+
+  /* S4 — клиент спит */
+  .light { background: #fbfbfd; color: #1d1d1f; }
+  .huge { font-size: 150px; font-weight: 800; letter-spacing: -6px; line-height: 1; }
+
+  /* S5 — пульт */
+  .dash { background: #f5f5f7; color: #1d1d1f; justify-content: flex-start; padding-top: 110px; }
+  .dash .frame { width: 940px; border-radius: 48px; background: #fbfbfd; border: 1px solid #e5e5ea; padding: 44px; box-shadow: 0 40px 120px -30px rgba(0,0,0,.35); animation: zoom 4.5s cubic-bezier(.2,.8,.2,1) both; }
+  .hl { display: flex; align-items: center; gap: 18px; font-size: 48px; font-weight: 700; letter-spacing: -1.5px; }
+  .dot { width: 26px; height: 26px; border-radius: 50%; background: var(--up); flex-shrink: 0; }
+  .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 30px; }
+  .tile { background: #fff; border: 1px solid #e5e5ea; border-radius: 26px; padding: 22px 26px; }
+  .tile p:first-child { font-size: 24px; color: #6e6e73; }
+  .tile p:last-child { font-size: 52px; font-weight: 700; letter-spacing: -1.5px; margin-top: 4px; }
+  .site { background: #fff; border: 1px solid #e5e5ea; border-radius: 28px; padding: 26px 28px; margin-top: 16px; }
+  .site .row { display: flex; justify-content: space-between; align-items: center; font-size: 32px; font-weight: 700; }
+  .site .row span:first-child { display: flex; align-items: center; gap: 14px; }
+  .site .meta { font-size: 23px; color: #6e6e73; margin-top: 14px; }
+  .bars { display: flex; gap: 4px; height: 44px; margin-top: 18px; }
+  .bars i { flex: 1; border-radius: 4px; background: #1fa463; transform-origin: bottom; animation: grow .5s cubic-bezier(.2,.8,.2,1) both; }
+  .bars i.w { background: #d48806; } .bars i.d { background: #e5484d; }
+  .dashcap { position: absolute; bottom: 90px; left: 0; right: 0; text-align: center; font-size: 64px; font-weight: 700; letter-spacing: -2px; color: #1d1d1f; }
+
+  /* S6 — статус-страница */
+  .status { background: #fbfbfd; color: #1d1d1f; justify-content: flex-start; padding-top: 110px; }
+  .status .brand { font-size: 30px; color: #6e6e73; font-weight: 500; }
+  .status .client { font-size: 84px; font-weight: 700; letter-spacing: -3px; }
+  .banner { display: flex; align-items: center; gap: 18px; background: #e6f6ee; border: 1px solid rgba(31,164,99,.3); border-radius: 28px; padding: 28px 32px; font-size: 36px; font-weight: 700; margin-top: 30px; }
+  .banner .dot { animation: pulse 1.6s ease-out infinite; background: #1fa463; box-shadow: none; }
+
+  /* S7 — финал */
+  .logo { width: 150px; height: 150px; border-radius: 40px; background: #f5f5f7; color: #000; font-size: 92px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .slogan { font-size: 112px; font-weight: 700; letter-spacing: -4.5px; line-height: 1.02; margin-top: 60px; }
+  .url { margin-top: 56px; font-size: 40px; color: var(--accent); font-weight: 600; }
+  .free { margin-top: 18px; font-size: 34px; color: #a1a1a6; }
+  .finalbars { position: absolute; bottom: 110px; left: 90px; right: 90px; display: flex; gap: 6px; height: 54px; }
+  .finalbars i { flex: 1; border-radius: 6px; background: var(--up); transform-origin: bottom; animation: grow .5s cubic-bezier(.2,.8,.2,1) both; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- S1: 0–3.4 -->
+  <section class="scene center" style="animation: show .5s ease 0s both, hide .4s ease 3.1s forwards">
+    <div class="clock rise" style="animation-delay:.1s">03<span class="colon">:</span>12</div>
+    <p class="h1 rise" data-t="s1" style="margin-top:40px; animation-delay:.9s"></p>
+  </section>
+
+  <!-- S2+S3: 3.4–10.6 — экран блокировки -->
+  <section class="scene lock" style="animation: show .4s ease 3.3s both, hide .4s ease 10.3s forwards">
+    <p class="date" data-t="date"></p>
+    <p class="big">3:12</p>
+    <div class="notifs">
+      <div class="notif" style="animation-delay:4.1s">
+        <div class="top"><span class="app">✈</span><span>Telegram · Watcher</span><span class="time" data-t="now"></span></div>
+        <p class="title">🔴 Acme · acme.ru</p>
+        <p class="text" data-t="downText"></p>
+      </div>
+      <div class="notif" style="animation-delay:7.4s">
+        <div class="top"><span class="app">✈</span><span>Telegram · Watcher</span><span class="time" data-t="now"></span></div>
+        <p class="title">🟢 Acme · acme.ru</p>
+        <p class="text" data-t="upText"></p>
+      </div>
+    </div>
+    <p class="bottomcap rise" data-t="cap2" style="animation: rise .7s cubic-bezier(.2,.8,.2,1) 4.7s both, hide .3s ease 7.1s forwards"></p>
+    <p class="bottomcap rise" data-t="cap3" style="animation-delay:8.0s"></p>
+  </section>
+
+  <!-- S4: 10.6–13.6 -->
+  <section class="scene light center" style="animation: show .3s ease 10.5s both, hide .4s ease 13.4s forwards">
+    <p class="huge rise" data-t="client" style="animation-delay:10.7s"></p>
+    <p class="huge pop" data-t="asleep" style="margin-top:30px; animation-delay:11.8s"></p>
+  </section>
+
+  <!-- S5: 13.6–18.4 — пульт -->
+  <section class="scene dash" style="animation: show .4s ease 13.5s both, hide .4s ease 18.2s forwards">
+    <div class="frame" style="animation-delay:13.5s">
+      <div class="hl"><span class="dot"></span><span data-t="allOk"></span></div>
+      <div class="tiles">
+        <div class="tile pop" style="animation-delay:13.9s"><p data-t="tSites"></p><p>12</p></div>
+        <div class="tile pop" style="animation-delay:14.0s"><p data-t="tUp"></p><p style="color:#1fa463">12/12</p></div>
+        <div class="tile pop" style="animation-delay:14.1s"><p data-t="tInc"></p><p>1</p></div>
+        <div class="tile pop" style="animation-delay:14.2s"><p data-t="tUptime"></p><p>99.98%</p></div>
+      </div>
+      <div class="site"><div class="row"><span><span class="dot" style="width:18px;height:18px"></span>acme.ru</span><span>99.98%</span></div>
+        <div class="bars" data-bars="0" data-start="14.5"></div><p class="meta" data-t="meta1"></p></div>
+      <div class="site"><div class="row"><span><span class="dot" style="width:18px;height:18px"></span>bloom-shop.ru</span><span>100%</span></div>
+        <div class="bars" data-bars="1" data-start="14.8"></div><p class="meta" data-t="meta2"></p></div>
+    </div>
+    <p class="dashcap rise" data-t="cap5" style="animation-delay:14.4s"></p>
+  </section>
+
+  <!-- S6: 18.4–21.8 — статус-страница -->
+  <section class="scene status" style="animation: show .4s ease 18.3s both, hide .4s ease 21.6s forwards">
+    <div style="width:920px">
+      <p class="brand rise" data-t="brand" style="animation-delay:18.5s"></p>
+      <p class="client rise" style="animation-delay:18.6s">Acme</p>
+      <div class="banner rise" style="animation-delay:18.9s"><span class="dot"></span><span data-t="allOk"></span></div>
+      <div class="site" style="margin-top:22px"><div class="row"><span><span class="dot" style="width:18px;height:18px"></span>acme.ru</span><span style="font-size:26px;color:#6e6e73" data-t="uptime90"></span></div>
+        <div class="bars" data-bars="2" data-n="60" data-start="19.1"></div></div>
+      <div class="site"><div class="row"><span><span class="dot" style="width:18px;height:18px"></span>shop.acme.ru</span><span style="font-size:26px;color:#6e6e73" data-t="uptime100"></span></div>
+        <div class="bars" data-bars="3" data-n="60" data-start="19.3"></div></div>
+    </div>
+    <p class="dashcap rise" data-t="cap6" style="animation-delay:19.4s"></p>
+  </section>
+
+  <!-- S7: 21.8–25 — финал -->
+  <section class="scene center" style="animation: show .5s ease 21.7s both">
+    <div class="logo pop" style="animation-delay:21.9s">W</div>
+    <p class="slogan rise" data-t="slogan" style="animation-delay:22.3s"></p>
+    <p class="url rise" style="animation-delay:23.0s">watcher-puce.vercel.app</p>
+    <p class="free rise" data-t="free" style="animation-delay:23.2s"></p>
+    <div class="finalbars" data-final></div>
+  </section>
+</div>
+
+<script>
+const T = {
+  ru: {
+    s1: "Сайт вашего клиента<br>только что упал.",
+    date: "суббота, 25 октября", now: "сейчас",
+    downText: "Сайт не работает — ошибка сервера 502",
+    upText: "Сайт снова работает. Простой: 4 мин",
+    cap2: "Вы узнаёте через минуту.", cap3: "Чините за четыре.",
+    client: "А клиент?", asleep: "Спит. 😴",
+    allOk: "Все системы работают",
+    tSites: "Сайтов под наблюдением", tUp: "Работают сейчас", tInc: "Инцидентов · 7 дней", tUptime: "Аптайм · 30 дней",
+    meta1: "Работает · ответ 142 ms · SSL 54 дн · Домен 301 дн",
+    meta2: "Работает · ответ 388 ms · SSL 120 дн · Домен 180 дн",
+    cap5: "Все клиенты. Один пульт.",
+    brand: "Студия «Северный ветер»", uptime90: "99.98% аптайм", uptime100: "100% аптайм",
+    cap6: "Статус-страница под вашим брендом.",
+    slogan: "Узнайте раньше<br>клиента.",
+    free: "Watcher · бесплатно на время беты",
+  },
+  en: {
+    s1: "Your client’s site<br>just went down.",
+    date: "Saturday, October 25", now: "now",
+    downText: "Site is down — server error 502",
+    upText: "Back up. Downtime: 4 min",
+    cap2: "You know within a minute.", cap3: "Fixed in four.",
+    client: "Your client?", asleep: "Asleep. 😴",
+    allOk: "All systems operational",
+    tSites: "Sites monitored", tUp: "Up right now", tInc: "Incidents · 7 days", tUptime: "Uptime · 30 days",
+    meta1: "Up · 142 ms · SSL 54 d · Domain 301 d",
+    meta2: "Up · 388 ms · SSL 120 d · Domain 180 d",
+    cap5: "Every client. One screen.",
+    brand: "Northwind Studio", uptime90: "99.98% uptime", uptime100: "100% uptime",
+    cap6: "Status pages under your brand.",
+    slogan: "Know before<br>your client does.",
+    free: "Watcher · free during beta",
+  },
+};
+const lang = new URLSearchParams(location.search).get("lang") === "en" ? "en" : "ru";
+document.querySelectorAll("[data-t]").forEach((el) => (el.innerHTML = T[lang][el.dataset.t]));
+
+// Полосы аптайма: волна роста, редкие жёлтые/красные дни (детерминированно).
+const PATTERNS = { 0: { 9: "w" }, 2: { 21: "d", 44: "w" } };
+document.querySelectorAll("[data-bars]").forEach((el) => {
+  const n = Number(el.dataset.n || 30), start = Number(el.dataset.start);
+  const marks = PATTERNS[el.dataset.bars] || {};
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement("i");
+    if (marks[i]) b.className = marks[i];
+    b.style.animationDelay = (start + i * 0.02).toFixed(3) + "s";
+    el.appendChild(b);
+  }
+});
+const fb = document.querySelector("[data-final]");
+for (let i = 0; i < 40; i++) {
+  const b = document.createElement("i");
+  b.style.animationDelay = (23.4 + i * 0.025).toFixed(3) + "s";
+  fb.appendChild(b);
+}
+
+// Режим рендера: render.mjs вызывает seek(сек) для каждого кадра.
+window.seek = (sec) => {
+  for (const a of document.getAnimations()) {
+    a.pause();
+    a.currentTime = sec * 1000;
+  }
+};
+window.ready = Promise.all([400, 500, 600, 700, 800].map((w) => document.fonts.load(`${w} 40px Geist`, "Жa"))).then(() => true);
+</script>
+</body>
+</html>

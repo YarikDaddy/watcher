@@ -15,6 +15,7 @@ import TrackerItem from "./tracker-item";
 import SiteCard, { type SiteTracker } from "./site-card";
 import CopyLink from "./copy-link";
 import ConfirmButton from "./confirm-button";
+import GettingStarted from "./getting-started";
 import LanguageSwitcher from "../language-switcher";
 
 function timeAgo(date: Date, t: Dict["timeAgo"]): string {
@@ -188,17 +189,18 @@ export default async function DashboardPage() {
           </section>
         )}
 
-        {!user?.telegramChatId && sites.length > 0 && (
-          <section className="flex flex-col gap-3 rounded-2xl border border-accent/30 bg-accent-soft p-5 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="font-semibold">{s.connectTelegramTitle}</p>
-              <p className="mt-1 max-w-lg text-sm text-mute">{s.connectTelegramText}</p>
-            </div>
-            <TelegramLink linked={false} dict={dict.telegram} />
-          </section>
-        )}
+        <GettingStarted
+          g={dict.guide}
+          telegram={dict.telegram}
+          hasSite={sites.length > 0}
+          hasTelegram={!!user?.telegramChatId}
+          hasStatusPage={clients.some((cl) => !!cl.shareToken)}
+          firstClient={clients[0] ? { id: clients[0].id, name: clients[0].name } : null}
+        />
 
-        <AddSiteForm dict={s} clients={clients} />
+        <div id="add-site" className="scroll-mt-24">
+          <AddSiteForm dict={s} clients={clients} />
+        </div>
 
         {/* Сайты по клиентам */}
         {sites.length === 0 ? (

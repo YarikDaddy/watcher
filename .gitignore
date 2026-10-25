@@ -40,3 +40,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# промо-ролики (рендерятся promo/render.mjs)
+promo/*.mp4
+promo/frames-*/
