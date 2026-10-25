@@ -12,14 +12,14 @@ type FormDict = Dict["form"];
 type ClientOption = { id: string; name: string };
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
+"w-full rounded-lg border border-line bg-sunken px-3 py-2 outline-none focus:border-accent";
 
 function FieldError({ errors }: { errors?: string[] }) {
   if (!errors?.length) return null;
   return (
     <>
       {errors.map((e) => (
-        <p key={e} className="mt-1 text-sm text-red-500">
+        <p key={e} className="mt-1 text-sm text-down">
           {e}
         </p>
       ))}
@@ -37,20 +37,20 @@ function PreviewBadge({
   dict: FormDict;
 }) {
   if (!result.ok) {
-    return <span className="text-sm text-red-500">✗ {result.error}</span>;
+    return <span className="text-sm text-down">✗ {result.error}</span>;
   }
   if (mode === "CERT") {
     // Значение уже собрано словами на сервере («SSL истекает через N дн» / «истёк»).
     const expired = result.value === dict.certExpired;
     return (
-      <span className={`text-sm ${expired ? "text-red-500" : "text-green-600"}`}>
+      <span className={`text-sm ${expired ? "text-down" : "text-up"}`}>
         {expired ? "✗" : "✓"} {result.value}
       </span>
     );
   }
   if (!result.present) {
     return (
-      <span className="text-sm text-amber-600">
+      <span className="text-sm text-warn">
         ⚠ {mode === "PRICE" ? dict.previewNotFoundPrice : dict.previewNotFoundSelector}
       </span>
     );
@@ -58,7 +58,7 @@ function PreviewBadge({
   const value =
     result.value.length > 80 ? `${result.value.slice(0, 80)}…` : result.value;
   return (
-    <span className="text-sm text-green-600">
+    <span className="text-sm text-up">
       ✓ {mode === "ASSET" ? dict.previewFoundAsset : dict.previewFound}: «
       {value || dict.previewEmpty}»
     </span>
@@ -114,7 +114,7 @@ export default function AddTrackerForm({
 
   if (disabled) {
     return (
-      <p className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-800 dark:bg-amber-950/40">
+      <p className="rounded-lg border border-warn/40 bg-warn-soft p-4 text-sm text-warn">
         {dict.limitReached}
       </p>
     );
@@ -126,8 +126,8 @@ export default function AddTrackerForm({
       onClick={() => selectMode(value)}
       className={`flex-1 rounded-md border px-2 py-2 text-sm transition ${
         mode === value
-          ? "border-blue-600 bg-blue-50 font-medium text-blue-700 dark:bg-blue-950/40 dark:text-blue-300"
-          : "border-gray-300 hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+          ? "border-accent bg-accent-soft font-medium text-accent"
+          : "border-line hover:bg-sunken"
       }`}
     >
       {label}
@@ -148,27 +148,26 @@ export default function AddTrackerForm({
       ref={formRef}
       action={action}
       onSubmit={clearPreview}
-      className="flex flex-col gap-3 rounded-lg border border-gray-200 p-4 dark:border-gray-800"
+      className="flex flex-col gap-3 p-4"
     >
       <h2 className="font-medium">{dict.newTracker}</h2>
 
       <input type="hidden" name="mode" value={mode} />
 
       <div>
-        <label className="mb-1 block text-sm text-gray-500">{dict.whatToTrack}</label>
+        <label className="mb-1 block text-sm text-mute">{dict.whatToTrack}</label>
         <div className="flex gap-2">
           {modeButton("PRICE", dict.modePrice)}
           {modeButton("ASSET", dict.modeAsset)}
-          {modeButton("CERT", dict.modeCert)}
           {modeButton("SELECTOR", dict.modeSelector)}
         </div>
-        <p className="mt-1 text-xs text-gray-500">{hint}</p>
+        <p className="mt-1 text-xs text-mute">{hint}</p>
       </div>
 
       {mode === "ASSET" ? (
         <>
           <div>
-            <label className="mb-1 block text-sm text-gray-500">{dict.asset}</label>
+            <label className="mb-1 block text-sm text-mute">{dict.asset}</label>
             <select name="asset" ref={assetRef} onChange={clearPreview} className={inputClass}>
               {ASSETS.map((a) => (
                 <option key={a.value} value={a.value}>
@@ -181,7 +180,7 @@ export default function AddTrackerForm({
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="mb-1 block text-sm text-gray-500">{dict.condition}</label>
+              <label className="mb-1 block text-sm text-mute">{dict.condition}</label>
               <select
                 name="assetCondition"
                 value={condition}
@@ -196,7 +195,7 @@ export default function AddTrackerForm({
             </div>
 
             <div className="flex-1">
-              <label className="mb-1 block text-sm text-gray-500">
+              <label className="mb-1 block text-sm text-mute">
                 {condition === "PERCENT" ? dict.thresholdPercent : dict.thresholdPrice}
               </label>
               <input
@@ -240,7 +239,7 @@ export default function AddTrackerForm({
 
           {mode === "CERT" && (
             <div>
-              <label className="mb-1 block text-sm text-gray-500">{dict.certDaysLabel}</label>
+              <label className="mb-1 block text-sm text-mute">{dict.certDaysLabel}</label>
               <input
                 name="threshold"
                 type="number"
@@ -260,7 +259,7 @@ export default function AddTrackerForm({
           type="button"
           onClick={handlePreview}
           disabled={previewPending}
-          className="shrink-0 rounded-md border border-gray-300 px-3 py-1.5 text-sm hover:bg-gray-100 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
+          className="shrink-0 rounded-md border border-line px-3 py-1.5 text-sm hover:bg-sunken disabled:opacity-50"
         >
           {previewPending ? dict.checking : dict.check}
         </button>
@@ -274,7 +273,7 @@ export default function AddTrackerForm({
 
       {clients.length > 0 && (
         <div>
-          <label className="mb-1 block text-sm text-gray-500">{clientsDict.formLabel}</label>
+          <label className="mb-1 block text-sm text-mute">{clientsDict.formLabel}</label>
           <select name="clientId" defaultValue="" className={inputClass}>
             <option value="">{clientsDict.formNone}</option>
             {clients.map((c) => (
@@ -289,7 +288,7 @@ export default function AddTrackerForm({
       <div className="flex gap-3">
         {mode === "SELECTOR" && (
           <div className="flex-1">
-            <label className="mb-1 block text-sm text-gray-500">{dict.typeLabel}</label>
+            <label className="mb-1 block text-sm text-mute">{dict.typeLabel}</label>
             <select name="type" defaultValue="TEXT_CHANGE" className={inputClass}>
               <option value="TEXT_CHANGE">{dict.typeText}</option>
               <option value="PRESENCE">{dict.typePresence}</option>
@@ -299,9 +298,9 @@ export default function AddTrackerForm({
         )}
 
         <div className="flex-1">
-          <label className="mb-1 block text-sm text-gray-500">{dict.checkEvery}</label>
+          <label className="mb-1 block text-sm text-mute">{dict.checkEvery}</label>
           <select name="intervalMinutes" defaultValue="60" className={inputClass}>
-            {(["1", "5", "60", "180", "360", "720", "1440"] as const).map((v) => (
+            {(["5", "60", "180", "360", "720", "1440"] as const).map((v) => (
               <option key={v} value={v}>
                 {dict.intervals[v]}
               </option>
@@ -311,12 +310,12 @@ export default function AddTrackerForm({
         </div>
       </div>
 
-      {state?.message && <p className="text-sm text-red-500">{state.message}</p>}
+      {state?.message && <p className="text-sm text-down">{state.message}</p>}
 
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="rounded-md bg-accent px-4 py-2 font-medium text-white hover:brightness-110 disabled:opacity-50"
       >
         {pending ? dict.adding : dict.addTracker}
       </button>

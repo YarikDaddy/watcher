@@ -22,6 +22,8 @@ model User {
   locale            String    @default("en")
   // White-label: имя агентства на публичных статус-страницах (вместо «Watcher»)
   brandName         String?
+  // Когда последний раз слали недельную сводку в Telegram (null = ни разу)
+  lastDigestAt      DateTime?
   trackers          Tracker[]
   clients           Client[]
   sessions          Session[]
@@ -65,6 +67,8 @@ enum TrackerMode {
   SELECTOR // продвинутый режим: пользователь задаёт свой CSS-селектор
   ASSET    // финансовый актив (крипта/металл/валюта) через API + условие
   CERT     // срок действия SSL-сертификата (threshold = дни до истечения)
+  UPTIME   // доступность сайта: HTTP-ответ + время ответа, алерт «упал/поднялся»
+  DOMAIN   // срок регистрации домена (RDAP/WHOIS, threshold = дни до истечения)
 }
 
 enum AssetCondition {
@@ -109,8 +113,14 @@ model Tracker {
   lastError       String?
   lastCheckedAt   DateTime?
   nextCheckAt     DateTime      @default(now())
+  // Поля режима UPTIME:
+  responseMs      Int?          // время последнего ответа, мс
+  failCount       Int           @default(0) // неудачных проверок подряд (алерт после подтверждения)
+  downSince       DateTime?     // начало текущего сбоя (первая неудачная проверка)
   snapshots       Snapshot[]
   alerts          Alert[]
+  uptimeDays      UptimeDay[]
+  incidents       Incident[]
   createdAt       DateTime      @default(now())
 
   @@index([isActive, nextCheckAt])
@@ -137,4 +147,31 @@ model Alert {
   createdAt DateTime @default(now())
 
   @@index([trackerId, createdAt])
+}
+
+// Дневная сводка аптайма (UPTIME): одна строка на трекер в сутки (UTC).
+// Хранить каждую проверку дорого (5 мин × 90 дней = 26к строк на сайт), а для
+// полосы «90 дней» и процента аптайма достаточно счётчиков за день.
+model UptimeDay {
+  id        String   @id @default(cuid())
+  trackerId String
+  tracker   Tracker  @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  day       DateTime @db.Date
+  checks    Int      @default(0)
+  up        Int      @default(0)
+  totalMs   Int      @default(0) // сумма времени ответа успешных проверок (для среднего)
+
+  @@unique([trackerId, day])
+}
+
+// Подтверждённый сбой сайта (UPTIME): от первой неудачной проверки до восстановления.
+model Incident {
+  id        String    @id @default(cuid())
+  trackerId String
+  tracker   Tracker   @relation(fields: [trackerId], references: [id], onDelete: Cascade)
+  cause     String    // код причины: timeout / dns / http:503 / ...
+  startedAt DateTime
+  endedAt   DateTime? // null = сбой продолжается
+
+  @@index([trackerId, startedAt])
 }

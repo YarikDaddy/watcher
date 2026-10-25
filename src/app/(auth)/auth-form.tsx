@@ -41,10 +41,10 @@ export default function AuthForm({ action, mode, dict }: Props) {
             type="email"
             autoComplete="email"
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded-lg border border-line bg-sunken px-3 py-2 outline-none focus:border-accent"
           />
           {state?.errors?.email?.map((e) => (
-            <p key={e} className="mt-1 text-sm text-red-500">
+            <p key={e} className="mt-1 text-sm text-down">
               {e}
             </p>
           ))}
@@ -60,31 +60,31 @@ export default function AuthForm({ action, mode, dict }: Props) {
             type="password"
             autoComplete={isLogin ? "current-password" : "new-password"}
             required
-            className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+            className="w-full rounded-lg border border-line bg-sunken px-3 py-2 outline-none focus:border-accent"
           />
           {state?.errors?.password?.map((e) => (
-            <p key={e} className="mt-1 text-sm text-red-500">
+            <p key={e} className="mt-1 text-sm text-down">
               {e}
             </p>
           ))}
         </div>
 
         {state?.message && (
-          <p className="text-sm text-red-500">{state.message}</p>
+          <p className="text-sm text-down">{state.message}</p>
         )}
 
         <button
           type="submit"
           disabled={pending}
-          className="rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="rounded-md bg-accent px-4 py-2 font-medium text-white hover:brightness-110 disabled:opacity-50"
         >
           {pending ? "..." : submitLabel}
         </button>
       </form>
 
-      <p className="mt-4 text-center text-sm text-gray-500">
+      <p className="mt-4 text-center text-sm text-mute">
         {altText}{" "}
-        <Link href={altHref} className="text-blue-600 hover:underline">
+        <Link href={altHref} className="text-accent hover:underline">
           {altLabel}
         </Link>
       </p>

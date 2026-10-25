@@ -33,3 +33,8 @@ export async function sendTelegramMessage(
     return false;
   }
 }
+
+/** Экранирование для parse_mode=HTML: «<» в названии трекера иначе ломает отправку. */
+export function escapeHtml(text: string): string {
+  return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}

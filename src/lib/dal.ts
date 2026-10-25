@@ -19,7 +19,7 @@ export const getUser = cache(async () => {
   const { userId } = await verifySession();
   return prisma.user.findUnique({
     where: { id: userId },
-    select: { id: true, email: true, telegramChatId: true, brandName: true, createdAt: true },
+    select: { id: true, email: true, telegramChatId: true, brandName: true, locale: true, createdAt: true },
   });
 });
 
@@ -48,6 +48,7 @@ export const getClients = cache(async () => {
  */
 export const getClientByShareToken = cache(async (token: string) => {
   if (!token) return null;
+  const since = new Date(Date.now() - 90 * 86_400_000);
   return prisma.client.findUnique({
     where: { shareToken: token },
     select: {
@@ -58,15 +59,50 @@ export const getClientByShareToken = cache(async (token: string) => {
         select: {
           id: true,
           name: true,
+          url: true,
+          clientId: true,
           mode: true,
           status: true,
           lastValue: true,
           isActive: true,
           lastCheckedAt: true,
+          responseMs: true,
+          downSince: true,
+          uptimeDays: {
+            where: { day: { gte: since } },
+            select: { day: true, checks: true, up: true, totalMs: true },
+          },
+          incidents: {
+            where: { startedAt: { gte: since } },
+            orderBy: { startedAt: "desc" },
+            take: 20,
+            select: { id: true, cause: true, startedAt: true, endedAt: true },
+          },
         },
       },
     },
   });
+});
+
+/**
+ * История аптайма для дашборда: дневные сводки за 30 дней и инциденты за
+ * 7 дней по всем трекерам пользователя.
+ */
+export const getUptimeHistory = cache(async () => {
+  const { userId } = await verifySession();
+  const since = new Date(Date.now() - 30 * 86_400_000);
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000);
+  const [days, incidents] = await Promise.all([
+    prisma.uptimeDay.findMany({
+      where: { tracker: { userId }, day: { gte: since } },
+      select: { trackerId: true, day: true, checks: true, up: true, totalMs: true },
+    }),
+    prisma.incident.findMany({
+      where: { tracker: { userId }, startedAt: { gte: weekAgo } },
+      select: { trackerId: true, startedAt: true, endedAt: true },
+    }),
+  ]);
+  return { days, incidents };
 });
 
 /** Последние срабатывания (алерты) по всем трекерам пользователя. */

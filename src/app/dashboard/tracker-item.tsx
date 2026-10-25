@@ -9,7 +9,7 @@ import type { Dict } from "@/lib/i18n";
 export type TrackerView = {
   id: string;
   name: string;
-  mode: "PRICE" | "SELECTOR" | "ASSET" | "CERT";
+  mode: "PRICE" | "SELECTOR" | "ASSET" | "CERT" | "UPTIME" | "DOMAIN";
   url: string | null;
   selector: string | null;
   type: "TEXT_CHANGE" | "PRESENCE";
@@ -26,16 +26,16 @@ export type TrackerView = {
 export type ClientOption = { id: string; name: string };
 
 const STATUS_CLASS: Record<string, string> = {
-  PENDING: "text-gray-500",
-  OK: "text-green-600",
-  CHANGED: "text-blue-600 font-medium",
-  ERROR: "text-red-500",
+  PENDING: "text-mute",
+  OK: "text-up",
+  CHANGED: "text-accent font-medium",
+  ERROR: "text-down",
 };
 
 const inputClass =
-  "w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-700 dark:bg-gray-900";
+"w-full rounded-lg border border-line bg-sunken px-3 py-2 outline-none focus:border-accent";
 
-const INTERVALS = ["1", "5", "60", "180", "360", "720", "1440"] as const;
+const INTERVALS = ["5", "60", "180", "360", "720", "1440"] as const;
 
 function intervalLabel(minutes: number, d: Dict["dashboard"]): string {
   if (minutes < 60) return `${minutes} ${d.minShort}`;
@@ -90,18 +90,18 @@ export default function TrackerItem({
       ? d.certExpired
       : `${d.certExpiresPrefix} ${certDays} ${d.certDaysShort}`;
 
-  const statusClass = t.isActive ? STATUS_CLASS[t.status] ?? STATUS_CLASS.PENDING : "text-amber-600";
+  const statusClass = t.isActive ? STATUS_CLASS[t.status] ?? STATUS_CLASS.PENDING : "text-warn";
   const statusText = t.isActive
     ? d.statuses[t.status as keyof typeof d.statuses] ?? d.statuses.PENDING
     : d.paused;
 
   return (
-    <li className="rounded-lg border border-gray-200 p-3 dark:border-gray-800">
+    <li className="rounded-2xl border border-line bg-card p-4 ">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="truncate font-medium">{t.name}</p>
           {t.mode === "ASSET" ? (
-            <p className="truncate text-sm text-gray-500">
+            <p className="truncate text-sm text-mute">
               📈 {assetLabel(t.asset ?? "")}
               {t.lastValue ? ` · ${d.nowPrefix} ${t.lastValue}${unit ? ` ${unit}` : ""}` : ""}
             </p>
@@ -111,13 +111,13 @@ export default function TrackerItem({
                 href={t.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="block truncate text-sm text-blue-600 hover:underline"
+                className="block truncate text-sm text-accent hover:underline"
               >
                 {t.url}
               </a>
             )
           )}
-          <p className="mt-1 text-xs text-gray-500">
+          <p className="mt-1 text-xs text-mute">
             {t.mode === "ASSET" ? (
               <>
                 {d.alertPrefix} {conditionText(t.assetCondition, t.threshold, unit)}
@@ -141,7 +141,7 @@ export default function TrackerItem({
           <button
             type="button"
             onClick={() => setEditing((v) => !v)}
-            className="rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+            className="rounded-md border border-line px-2 py-1 text-xs hover:bg-sunken"
           >
             {d.edit}
           </button>
@@ -149,7 +149,7 @@ export default function TrackerItem({
             <input type="hidden" name="id" value={t.id} />
             <button
               type="submit"
-              className="rounded-md border border-gray-300 px-2 py-1 text-xs hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              className="rounded-md border border-line px-2 py-1 text-xs hover:bg-sunken"
             >
               {t.isActive ? d.pause : d.resume}
             </button>
@@ -158,7 +158,7 @@ export default function TrackerItem({
             <input type="hidden" name="id" value={t.id} />
             <button
               type="submit"
-              className="rounded-md border border-gray-300 px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:border-gray-700 dark:hover:bg-red-950/40"
+              className="rounded-md border border-line px-2 py-1 text-xs text-down hover:bg-down-soft"
             >
               {d.delete}
             </button>
@@ -167,7 +167,7 @@ export default function TrackerItem({
       </div>
 
       {editing && (
-        <form action={submit} className="mt-3 flex flex-col gap-2 border-t border-gray-200 pt-3 dark:border-gray-800">
+        <form action={submit} className="mt-3 flex flex-col gap-2 border-t border-line pt-3 ">
           <input type="hidden" name="id" value={t.id} />
 
           {t.mode === "ASSET" && (
@@ -250,7 +250,7 @@ export default function TrackerItem({
             ...(err?.intervalMinutes ?? []),
             ...(state?.message ? [state.message] : []),
           ].map((m) => (
-            <p key={m} className="text-sm text-red-500">
+            <p key={m} className="text-sm text-down">
               {m}
             </p>
           ))}
@@ -259,14 +259,14 @@ export default function TrackerItem({
             <button
               type="submit"
               disabled={pending}
-              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-50"
             >
               {pending ? d.saving : d.save}
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="rounded-md border border-gray-300 px-4 py-2 text-sm hover:bg-gray-100 dark:border-gray-700 dark:hover:bg-gray-800"
+              className="rounded-md border border-line px-4 py-2 text-sm hover:bg-sunken"
             >
               {d.cancel}
             </button>

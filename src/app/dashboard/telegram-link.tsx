@@ -31,11 +31,11 @@ export default function TelegramLink({
   if (linked) {
     return (
       <div className="mt-2 flex items-center gap-3">
-        <span className="text-sm text-green-600">{dict.linked}</span>
+        <span className="text-sm text-up">{dict.linked}</span>
         <form action={unlinkTelegram}>
           <button
             type="submit"
-            className="text-xs text-gray-500 underline hover:text-red-500"
+            className="text-xs text-mute underline hover:text-down"
           >
             {dict.unlink}
           </button>
@@ -49,25 +49,25 @@ export default function TelegramLink({
       <button
         onClick={connect}
         disabled={pending}
-        className="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+        className="rounded-md bg-accent px-3 py-1.5 text-sm font-medium text-white hover:brightness-110 disabled:opacity-50"
       >
         {pending ? dict.preparing : dict.connect}
       </button>
       {link && (
-        <p className="mt-2 text-sm text-gray-500">
+        <p className="mt-2 text-sm text-mute">
           {dict.instructions}{" "}
           <a
             href={link}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-blue-600 underline"
+            className="text-accent underline"
           >
             {dict.openLink}
           </a>
           {dict.afterLink}
         </p>
       )}
-      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-2 text-sm text-down">{error}</p>}
     </div>
   );
 }

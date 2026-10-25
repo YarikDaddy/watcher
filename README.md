@@ -1,92 +1,84 @@
 # Watcher
 
-Отслеживай изменения на любом сайте и получай мгновенные уведомления в Telegram.
+**Узнайте раньше клиента.** Мониторинг сайтов для веб-студий и фрилансеров: доступность,
+SSL и домены всех клиентов в одном пульте, алерты в Telegram и статус-страницы под вашим брендом.
 
-Указываешь URL и CSS-селектор — Watcher периодически проверяет страницу и присылает алерт,
-когда меняется цена, появляется товар в наличии, публикуется вакансия или меняется любой текст.
+> Статус: публичная бета, строится в открытую (#buildinpublic).
 
-> Статус: ранний MVP, в активной разработке (#buildinpublic).
+## Возможности
 
-## Возможности (MVP)
-
-- 🔗 Трекеры: URL + CSS-селектор + интервал проверки
-- 🔁 Два режима: изменение текста и появление/исчезновение элемента
-- 📲 Мгновенные уведомления в Telegram
-- 📊 Дашборд со статусом и историей срабатываний
-- 🆓 Бесплатный тариф: 3 трекера, проверка раз в час
+- ⚡ **Аптайм** каждые 5 минут: время ответа, подтверждение сбоя перед алертом (без ложных тревог), «снова работает» с длительностью простоя, журнал инцидентов
+- 🔒 **SSL**: предупреждения за 14 / 7 / 3 / 1 день до истечения
+- 🌐 **Домены**: срок регистрации через RDAP, для `.ru` / `.рф` / `.su` и других — через WHOIS
+- ➕ **Сайт в одно поле**: адрес → сразу три проверки и мгновенный первый прогон
+- 🗂️ **Клиенты**: сайты сгруппированы по заказчику, клиент создаётся прямо из формы
+- 🪪 **White-label статус-страница** на клиента: 90 дней аптайма, история инцидентов, ваш бренд
+- ✈️ **Telegram-бот**: алерты, `/status` — живая сводка, отчёт за неделю по понедельникам
+- 🔎 **Бесплатная проверка сайта** на лендинге без регистрации (оценка A–F) — с защитой от SSRF
+- 💰 Дополнительно: цены, любой элемент страницы (CSS-селектор), крипта / металлы / курсы
+- 🌍 RU / EN везде: интерфейс, алерты, статус-страницы
 
 ## Стек
 
-- **Next.js (App Router) + TypeScript** — UI, API, лендинг
-- **PostgreSQL + Prisma** — данные
-- **Воркер на node-cron** — фоновые проверки (отдельный процесс)
-- **cheerio** — парсинг HTML
-- **grammY** — Telegram-бот
+Next.js 16 (App Router, TS) · PostgreSQL (Neon) + Prisma 7 · cheerio · grammY · Tailwind 4
 
 ## Архитектура
 
+Один движок проверок (`src/lib/runner.ts`), два способа его крутить:
+
 ```
-Next.js (UI + API) ──► PostgreSQL ◄── Worker (node-cron)
-                                          │ fetch + cheerio
-                                          ▼
-                                    Telegram Bot
+                 ┌── /api/cron/check (Vercel, serverless) ◄── внешний cron раз в минуту
+runner.ts ───────┤
+                 └── npm run worker (свой сервер / локально, node-cron)
+
+Telegram-бот: /api/telegram (вебхук, прод)  или  long-polling в npm run worker (локально)
 ```
+
+Без состояния в памяти: всё в БД. Параллельные проходы не мешают друг другу —
+трекер «арендуется» атомарным `updateMany` по `nextCheckAt`.
 
 ## Локальный запуск
 
 ```bash
-# 1. Зависимости
 npm install
-
-# 2. Окружение
-cp .env.example .env   # заполни DATABASE_URL и TELEGRAM_BOT_TOKEN
-
-# 3. БД
-npm run db:push        # применить схему к Postgres
-npm run db:generate    # сгенерировать Prisma Client
-
-# 4. Запуск (в двух терминалах)
-npm run dev            # веб-приложение на http://localhost:3000
-npm run worker         # фоновый воркер проверок
-
-# Тесты
+cp .env.example .env          # DATABASE_URL, TELEGRAM_BOT_TOKEN, ...
+npm run db:push               # схема → Postgres
+npm run dev                   # http://localhost:3000
+npm run worker                # проверки + бот (long-polling)
 npm test
 ```
 
-## Деплой
+Быстрая локальная БД: `docker run -d -p 55432:5432 -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=watcher postgres:17-alpine`
+и `DATABASE_URL=postgresql://postgres:dev@127.0.0.1:55432/watcher`.
 
-Веб и воркер деплоятся раздельно — воркер это постоянный процесс (cron + Telegram
-long-polling) и не работает на serverless.
+## Деплой (бесплатно, без постоянного процесса)
 
-- **Веб (Next.js) → Vercel.** Импортировать GitHub-репозиторий. Env: `DATABASE_URL`,
-  `TELEGRAM_BOT_USERNAME`. Сборка стандартная (`prisma generate` запускается в `postinstall`).
-- **Воркер → Railway.** Тот же репозиторий, start-команда `npm run worker`. Env:
-  `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`.
-- **БД → Neon** (Postgres). Один `DATABASE_URL` на оба сервиса.
+1. **БД → Neon.** `npm run db:push` с прод-`DATABASE_URL` (изменения схемы аддитивные).
+2. **Веб → Vercel.** Env: `DATABASE_URL`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`,
+   `CRON_SECRET`, `TELEGRAM_WEBHOOK_SECRET` (секреты — любые длинные случайные строки:
+   `openssl rand -hex 24`).
+3. **Бот → вебхук:** `npm run bot:webhook -- set https://<ваш-домен>` (берёт токен и секрет из `.env`).
+4. **Пульс движка** — любой из вариантов:
+   - [cron-job.org](https://cron-job.org) (бесплатно, раз в минуту): `GET https://<домен>/api/cron/check`
+     с заголовком `Authorization: Bearer <CRON_SECRET>`;
+   - GitHub Actions (`.github/workflows/cron.yml`, раз в 5 мин): секреты репозитория `WATCHER_URL`, `CRON_SECRET`.
+   - Vercel Cron из `vercel.json` (раз в сутки) — страховка.
+
+Воркер на Railway больше не нужен. Для локального long-polling снимите вебхук: `npm run bot:webhook -- delete`.
 
 ## Структура
 
 ```
-prisma/schema.prisma   — модель данных (User, Tracker, Snapshot, Alert)
-src/lib/prisma.ts       — Prisma Client (singleton)
-src/lib/check.ts        — загрузка страницы, извлечение по селектору, сравнение
-src/lib/telegram.ts     — отправка сообщений в Telegram
-src/worker/index.ts     — планировщик проверок (node-cron) + запуск бота
-src/worker/bot.ts       — Telegram-бот привязки аккаунта (grammY, /start <token>)
-src/app/                — Next.js приложение
+src/lib/runner.ts       — движок: выбор созревших трекеров, аренда, пул, все режимы
+src/lib/uptime.ts       — HTTP-проверка, машина состояний «упал/поднялся», проценты, полосы
+src/lib/domain.ts       — срок домена: RDAP + WHOIS, регистрируемый домен, хостинги
+src/lib/cert.ts         — срок SSL-сертификата (TLS), рубежи предупреждений
+src/lib/digest.ts       — /status и недельный отчёт в Telegram
+src/lib/bot.ts          — Telegram-бот (вебхук или polling)
+src/lib/sites.ts        — «сайт» = аптайм + SSL + домен одного хоста
+src/lib/net-guard.ts    — защита от SSRF и rate limit для публичной проверки
+src/app/page.tsx        — лендинг + бесплатная проверка (site-checker.tsx)
+src/app/dashboard/      — пульт агентства
+src/app/status/[token]  — публичная статус-страница клиента
+src/app/api/            — cron, telegram-вебхук
 ```
-
-## Roadmap
-
-- [x] Каркас: схема БД, модуль проверки, воркер, Telegram
-- [x] Аутентификация (email + пароль, сессии в БД) и защищённый дашборд
-- [x] CRUD трекеров (добавление, список, удаление, лимит свободного тарифа)
-- [x] Привязка Telegram через бота (deep-link `/start`, бот в процессе воркера)
-- [x] Лендинг
-- [x] Деплой (веб на Vercel, воркер на Railway, БД на Neon)
-- [ ] Тарифы и оплата (после первых пользователей)
-- [ ] JS-рендеринг (Playwright) для динамических сайтов
-
-## Лицензия
-
-MIT

@@ -18,17 +18,17 @@ export default function AddClientForm({ dict }: { dict: Dict["clients"] }) {
         <input
           name="name"
           placeholder={dict.addPlaceholder}
-          className="flex-1 rounded-md border border-gray-300 px-3 py-2 text-sm dark:border-gray-700 dark:bg-gray-900"
+          className="flex-1 rounded-lg border border-line bg-sunken px-3 py-2 text-sm outline-none focus:border-accent"
         />
         <button
           type="submit"
           disabled={pending}
-          className="shrink-0 rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          className="shrink-0 rounded-md bg-accent px-4 py-2 text-sm font-medium text-white hover:brightness-110 disabled:opacity-50"
         >
           {pending ? dict.adding : dict.add}
         </button>
       </div>
-      {state?.error && <p className="text-sm text-red-500">{state.error}</p>}
+      {state?.error && <p className="text-sm text-down">{state.error}</p>}
     </form>
   );
 }

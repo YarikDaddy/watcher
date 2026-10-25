@@ -28,10 +28,13 @@ export type AuthFormState =
     }
   | undefined;
 
-// Минимальный интервал проверки. 1 минута — для демо/наблюдения «вживую»;
-// на проде под нагрузкой имеет смысл вернуть к 60 для свободного тарифа.
-export const MIN_INTERVAL_MINUTES = 1;
-export const FREE_TIER_TRACKER_LIMIT = 3;
+// Минимальный интервал проверки: 5 минут — стандарт аптайм-мониторинга и
+// бережно к чужим сайтам (раньше было 1 для демо).
+export const MIN_INTERVAL_MINUTES = 5;
+// Бесплатная бета: до 10 сайтов (сайт = аптайм + SSL + домен) и общий
+// потолок трекеров с запасом под цены/селекторы.
+export const FREE_SITE_LIMIT = 10;
+export const FREE_TIER_TRACKER_LIMIT = 40;
 
 export function makeClientSchema(v: Val) {
   return z.object({

@@ -1,8 +1,11 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Watcher — website monitoring with Telegram alerts";
+export const alt = "Watcher — know before your client does";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
+
+// Мини-полоса аптайма для превью: почти всё зелёное, один жёлтый и один красный день.
+const BARS = Array.from({ length: 46 }, (_, i) => (i === 17 ? "#ffb340" : i === 33 ? "#ff6961" : "#30d158"));
 
 export default function OpengraphImage() {
   return new ImageResponse(
@@ -13,55 +16,45 @@ export default function OpengraphImage() {
           height: "100%",
           display: "flex",
           flexDirection: "column",
-          justifyContent: "center",
-          padding: "80px",
-          background: "linear-gradient(135deg, #0b1220 0%, #0a0a0a 100%)",
-          color: "white",
+          justifyContent: "space-between",
+          padding: "72px 80px",
+          background: "#000000",
+          color: "#f5f5f7",
           fontFamily: "sans-serif",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              width: "96px",
-              height: "96px",
-              borderRadius: "24px",
-              background: "#2563eb",
-              fontSize: "56px",
+              width: "72px",
+              height: "72px",
+              borderRadius: "18px",
+              background: "#f5f5f7",
+              color: "#000",
+              fontSize: "42px",
               fontWeight: 700,
             }}
           >
             W
           </div>
-          <div style={{ fontSize: "64px", fontWeight: 700 }}>Watcher</div>
+          <div style={{ fontSize: "44px", fontWeight: 600 }}>Watcher</div>
         </div>
 
-        <div style={{ marginTop: "40px", fontSize: "52px", fontWeight: 700, lineHeight: 1.1 }}>
-          Know first when a website changes
-        </div>
-        <div style={{ marginTop: "24px", fontSize: "30px", color: "#94a3b8" }}>
-          Prices · crypto & rates · any element — alerts in Telegram
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <div style={{ fontSize: "88px", fontWeight: 700, lineHeight: 1.02, letterSpacing: "-3px" }}>
+            Know before your client does.
+          </div>
+          <div style={{ marginTop: "24px", fontSize: "32px", color: "#a1a1a6" }}>
+            Uptime · SSL · domains — Telegram alerts & branded status pages for web studios
+          </div>
         </div>
 
-        <div style={{ display: "flex", gap: "16px", marginTop: "48px" }}>
-          {["💰 Price", "📈 Crypto / rates", "⚙️ Selector"].map((chip) => (
-            <div
-              key={chip}
-              style={{
-                display: "flex",
-                padding: "14px 26px",
-                borderRadius: "999px",
-                border: "1px solid #1e293b",
-                background: "#0f172a",
-                fontSize: "28px",
-                color: "#cbd5e1",
-              }}
-            >
-              {chip}
-            </div>
+        <div style={{ display: "flex", gap: "6px", height: "44px" }}>
+          {BARS.map((c, i) => (
+            <div key={i} style={{ display: "flex", flex: 1, borderRadius: "4px", background: c }} />
           ))}
         </div>
       </div>

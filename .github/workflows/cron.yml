@@ -1,0 +1,22 @@
+# Пульс движка проверок: раз в 5 минут дёргает /api/cron/check.
+# Бесплатно для публичного репозитория. Нужны секреты репозитория:
+#   WATCHER_URL  — https://watcher-puce.vercel.app
+#   CRON_SECRET  — тот же, что в env Vercel
+# GitHub может задерживать scheduled-запуски; для точной минуты — cron-job.org.
+name: checks
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Run due checks
+        env:
+          WATCHER_URL: ${{ secrets.WATCHER_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$WATCHER_URL" ] || [ -z "$CRON_SECRET" ]; then echo "secrets not set, skip"; exit 0; fi
+          curl -fsS --max-time 90 -H "Authorization: Bearer $CRON_SECRET" "$WATCHER_URL/api/cron/check"
