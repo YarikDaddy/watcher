@@ -33,6 +33,8 @@ test("rateLimit: окно и лимит", () => {
 test("оценка сайта A–F", () => {
   assert.equal(speedLevel(300), "good");
   assert.equal(speedLevel(1500), "warn");
+  assert.equal(speedLevel(3500), "warn"); // медленно, но живой сайт — не F
+  assert.equal(speedLevel(6000), "bad");
   assert.equal(sslLevel(5), "bad");
   assert.equal(domainLevel(30), "warn");
   assert.equal(gradeOf([{ key: "online", level: "good" }, { key: "ssl", level: "good" }]), "A");

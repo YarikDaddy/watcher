@@ -11,9 +11,12 @@ export type HealthItem =
 
 export type Grade = "A" | "B" | "C" | "F";
 
+// Медленный ответ — повод присмотреться, но не «критично»: F только для
+// реально сломанного (не отвечает, сертификат истёк). Иначе живой сайт со
+// временем ответа 3 с получал бы ту же оценку, что и упавший.
 export function speedLevel(ms: number): Level {
   if (ms < 800) return "good";
-  if (ms < 2000) return "warn";
+  if (ms < 5000) return "warn";
   return "bad";
 }
 
